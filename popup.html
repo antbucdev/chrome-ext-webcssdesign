@@ -114,6 +114,20 @@
       background-color: #565e64;
     }
 
+    #compareBtn {
+      background-color: #198754;
+      color: white;
+    }
+
+    #compareBtn:hover {
+      background-color: #157347;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #compareBtn:active {
+      background-color: #146c43;
+    }
+
     .results-section {
       margin-top: 20px;
     }
@@ -213,18 +227,23 @@
   </div>
 
   <div class="form-group">
-    <h4>📋 Figma CSS Code</h4>
+    <h4>🎯 Step 1: Select Website Element</h4>
+    <button id="selectElement">Select Element</button>
+  </div>
+
+  <div class="form-group">
+    <h4>📋 Step 2: Paste Figma CSS Code</h4>
     <textarea id="figmaCss" placeholder="Paste your Figma CSS code here..."></textarea>
   </div>
 
   <div class="button-group">
-    <button id="selectElement">🎯 Select Element</button>
+    <button id="compareBtn">✓ Compare CSS</button>
     <button id="clearData">🗑️ Clear</button>
   </div>
 
   <div class="results-section">
     <div class="results-header" id="resultsHeader" style="display: none;">
-      <h5>📊 Comparison Results</h5>
+      <h5 id="resultsTitle">📊 Selected Element CSS</h5>
     </div>
     <div id="results"></div>
   </div>
