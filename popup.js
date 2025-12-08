@@ -17,10 +17,15 @@ document.getElementById('figmaCss').addEventListener('input', (e) => {
 });
 
 document.getElementById('selectElement').onclick = async () => {
+  // Get Figma CSS properties first
+  const figmaInput = document.getElementById('figmaCss').value;
+  const figmaObj = cssStringToObject(figmaInput);
+  const propertiesToExtract = Object.keys(figmaObj);
+
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => {
+      func: (properties) => {
         return new Promise((resolve) => {
           const style = document.createElement('style');
           style.innerHTML = `.css-compare-highlight { outline: 2px solid #0057b7 !important; }`;
@@ -33,12 +38,15 @@ document.getElementById('selectElement').onclick = async () => {
             el.classList.add('css-compare-highlight');
             document.removeEventListener('click', onClick, true);
 
-            // Get computed styles as CSS
+            // Get computed styles for ALL properties from Figma CSS
             const computed = window.getComputedStyle(el);
             const cssObj = {};
-            for (let key of ['font-size', 'font-weight', 'font-family', 'color', 'background-color', 'border-width', 'border-color', 'border-style', 'margin', 'padding', 'width', 'height']) {
-              cssObj[key] = computed[key];
-            }
+
+            // Extract values for all properties mentioned in Figma CSS
+            properties.forEach(key => {
+              // Get computed value (includes inherited values)
+              cssObj[key] = computed.getPropertyValue(key) || computed[key] || '';
+            });
 
             setTimeout(() => {
               el.classList.remove('css-compare-highlight');
@@ -50,7 +58,8 @@ document.getElementById('selectElement').onclick = async () => {
 
           document.addEventListener('click', onClick, true);
         });
-      }
+      },
+      args: [propertiesToExtract]
     }, (results) => {
       if (results && results[0] && results[0].result) {
         compareCSS(results[0].result);
@@ -84,9 +93,13 @@ function compareCSS(siteCssObj) {
   Object.keys(figmaObj).forEach(key => {
     let siteValue = siteCssObj[key] || '';
     let figmaValue = figmaObj[key];
+
+    // Display "(not set)" if website value is empty
+    let displaySiteValue = siteValue.trim() === '' ? '(not set)' : siteValue;
+
     let css = (siteValue.replace(/\s/g, '').toLowerCase() === figmaValue.replace(/\s/g, '').toLowerCase())
       ? "match" : "diff";
-    html += `<div class="${css}"><b>${key}:</b> Figma: <code>${figmaValue}</code> &rarr; Site: <code>${siteValue}</code></div>`;
+    html += `<div class="${css}"><b>${key}:</b> Figma: <code>${figmaValue}</code> &rarr; Site: <code>${displaySiteValue}</code></div>`;
   });
 
   // Show results header and display comparison
