@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Figma CSS Compare</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+
+<body>
+    <div class="header">
+        <h3>CSS Comparison Tool</h3>
+    </div>
+
+    <div class="form-group">
+        <h4>🎯 Step 1: Select Website Element</h4>
+        <button id="selectElement">Select Element</button>
+    </div>
+
+    <div class="form-group">
+        <h4>📋 Step 2: Paste Figma CSS Code</h4>
+        <textarea id="figmaCss" placeholder="Paste your Figma CSS code here..."></textarea>
+    </div>
+
+    <div class="button-group">
+        <button id="compareBtn">✓ Compare CSS</button>
+        <button id="clearData">🗑️ Clear</button>
+    </div>
+
+    <div class="results-section">
+        <div class="results-header" id="resultsHeader" style="display: none;">
+            <h5 id="resultsTitle">📊 Selected Element CSS</h5>
+        </div>
+        <div id="results"></div>
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>

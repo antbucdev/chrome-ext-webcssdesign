@@ -1,10 +1,3 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-  <meta charset="UTF-8">
-  <title>Figma CSS Compare</title>
-  <style>
     * {
       margin: 0;
       padding: 0;
@@ -12,12 +5,10 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      min-width: 400px;
-      max-width: 800px;
-      width: 500px;
-      min-height: 400px;
-      max-height: 700px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      min-width: 100%; /* Changed from fixed 400px/500px for sidepanel responsiveness */
+      width: 100%;
+      min-height: 100vh; /* Full height */
       padding: 20px;
       padding-bottom: 30px;
       background: #f8f9fa;
@@ -218,37 +209,3 @@
     textarea::-webkit-scrollbar-thumb:hover {
       background: #5c636a;
     }
-  </style>
-</head>
-
-<body>
-  <div class="header">
-    <h3>CSS Comparison Tool</h3>
-  </div>
-
-  <div class="form-group">
-    <h4>🎯 Step 1: Select Website Element</h4>
-    <button id="selectElement">Select Element</button>
-  </div>
-
-  <div class="form-group">
-    <h4>📋 Step 2: Paste Figma CSS Code</h4>
-    <textarea id="figmaCss" placeholder="Paste your Figma CSS code here..."></textarea>
-  </div>
-
-  <div class="button-group">
-    <button id="compareBtn">✓ Compare CSS</button>
-    <button id="clearData">🗑️ Clear</button>
-  </div>
-
-  <div class="results-section">
-    <div class="results-header" id="resultsHeader" style="display: none;">
-      <h5 id="resultsTitle">📊 Selected Element CSS</h5>
-    </div>
-    <div id="results"></div>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
-
-</html>
