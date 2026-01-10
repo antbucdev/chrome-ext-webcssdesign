@@ -315,6 +315,16 @@ function cssStringToObject(str) {
             if (key && value) {
                 obj[key.toLowerCase()] = value;
             }
+        } else {
+            // Check for standalone hex code (with optional semicolon)
+            // Regex for #123, #123456, #12345678 (alpha)
+            const hexMatch = line.match(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8});?$/);
+            if (hexMatch) {
+                // If it's a raw hex code, assume it's a color
+                let val = hexMatch[0];
+                if (val.endsWith(';')) val = val.slice(0, -1);
+                obj['color'] = val;
+            }
         }
     });
     return obj;
@@ -325,16 +335,17 @@ function cssStringToObject(str) {
  * e.g. "rgb(255, 0, 0)" -> "#ff0000"
  */
 function rgbToHex(rgb) {
-    // If already hex or not rgb, return as is
-    if (!rgb || !rgb.startsWith('rgb')) return rgb;
+    // If already hex or not rgb/rgba, return as is
+    if (!rgb || (!rgb.startsWith('rgb') && !rgb.startsWith('rgba'))) return rgb;
 
     const sep = rgb.indexOf(",") > -1 ? "," : " ";
     const parts = rgb.substring(rgb.indexOf("(") + 1).split(")")[0].split(sep);
 
-    // Extract r, g, b
+    // Extract r, g, b, (a)
     const r = parseInt(parts[0]);
     const g = parseInt(parts[1]);
     const b = parseInt(parts[2]);
+    let a = parts[3];
 
     if (isNaN(r) || isNaN(g) || isNaN(b)) return rgb;
 
@@ -343,9 +354,18 @@ function rgbToHex(rgb) {
         return hex.length == 1 ? "0" + hex : hex;
     }
 
-    // Ignore alpha for simple comparison or handle if needed. 
-    // Let's stick to 6-digit hex for robustness unless strictly required.
-    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+    let hex = "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+
+    // Handle alpha if present
+    if (a !== undefined) {
+        a = parseFloat(a);
+        if (!isNaN(a) && a < 1) {
+            const alpha = Math.round(a * 255);
+            hex += componentToHex(alpha);
+        }
+    }
+
+    return hex;
 }
 
 /**
@@ -364,7 +384,7 @@ function normalizeValue(value) {
         }
     }
 
-    // Convert rgb to hex
+    // Convert rgb/rgba to hex
     if (val.startsWith('rgb')) {
         val = rgbToHex(val);
     }
