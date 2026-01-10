@@ -59,12 +59,12 @@ document.getElementById('selectElement').onclick = async () => {
                         }
                         .css-compare-hover {
                             outline: 2px dashed #4a90e2 !important;
-                            cursor: crosshair !important;
+                            cursor: default !important;
                             z-index: 10000 !important;
                         }
                         .css-compare-hover-actionable {
                             outline: 2px solid #ff9900 !important;
-                            cursor: pointer !important;
+                            cursor: default !important;
                             z-index: 10000 !important;
                         }
                     `;
