@@ -46,6 +46,27 @@ const span = document.getElementsByClassName("close")[0];
 
 btn.onclick = function () {
     modal.style.display = "block";
+    checkIncognitoStatus();
+}
+
+function checkIncognitoStatus() {
+    chrome.extension.isAllowedIncognitoAccess((isAllowed) => {
+        const incognitoBtn = document.getElementById('incognitoBtn');
+        if (isAllowed) {
+            incognitoBtn.textContent = 'Active';
+            incognitoBtn.disabled = true;
+            incognitoBtn.style.opacity = '0.6';
+            incognitoBtn.style.cursor = 'default';
+        } else {
+            incognitoBtn.textContent = 'Enable Access';
+            incognitoBtn.disabled = false;
+            incognitoBtn.style.opacity = '1';
+            incognitoBtn.style.cursor = 'pointer';
+            incognitoBtn.onclick = () => {
+                chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id });
+            };
+        }
+    });
 }
 
 span.onclick = function () {
