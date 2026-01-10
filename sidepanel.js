@@ -67,8 +67,31 @@ document.getElementById('selectElement').onclick = async () => {
                             cursor: default !important;
                             z-index: 10000 !important;
                         }
+                        #css-compare-tooltip {
+                            position: fixed;
+                            z-index: 2147483647;
+                            background: rgba(0, 0, 0, 0.9);
+                            color: white;
+                            padding: 4px 8px;
+                            border-radius: 4px;
+                            font-family: Consolas, Monaco, monospace;
+                            font-size: 12px;
+                            pointer-events: none;
+                            display: none;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                            white-space: nowrap;
+                        }
+                        #css-compare-tooltip .tag { color: #f28b82; font-weight: bold; }
+                        #css-compare-tooltip .id { color: #fbbc04; }
+                        #css-compare-tooltip .class { color: #8ab4f8; }
+                        #css-compare-tooltip .dim { color: #bdc1c6; margin-left: 5px; }
                     `;
                     document.head.appendChild(style);
+
+                    // Create tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.id = 'css-compare-tooltip';
+                    document.body.appendChild(tooltip);
 
                     let currentHovered = null;
 
@@ -89,6 +112,40 @@ document.getElementById('selectElement').onclick = async () => {
                             el.classList.remove('css-compare-hover');
                             el.classList.remove('css-compare-hover-actionable');
                         });
+                        tooltip.style.display = 'none';
+                    }
+
+                    function updateTooltip(el) {
+                        const tag = el.tagName.toLowerCase();
+                        const id = el.id ? '#' + el.id : '';
+                        const classes = Array.from(el.classList)
+                            .filter(c => !c.startsWith('css-compare-'))
+                            .map(c => '.' + c)
+                            .join('');
+
+                        const rect = el.getBoundingClientRect();
+                        const width = Math.round(rect.width * 100) / 100;
+                        const height = Math.round(rect.height * 100) / 100;
+
+                        tooltip.innerHTML = `
+                            <span class="tag">${tag}</span><span class="id">${id}</span><span class="class">${classes}</span>
+                            <span class="dim">${width} x ${height}</span>
+                        `;
+
+                        tooltip.style.display = 'block';
+
+                        // Position tooltip
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        let top = rect.top - tooltipRect.height - 5;
+                        let left = rect.left;
+
+                        // Keep within viewport
+                        if (top < 0) top = rect.bottom + 5;
+                        if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
+                        if (left < 0) left = 5;
+
+                        tooltip.style.top = top + 'px';
+                        tooltip.style.left = left + 'px';
                     }
 
                     function onMouseOver(e) {
@@ -105,6 +162,8 @@ document.getElementById('selectElement').onclick = async () => {
                         } else {
                             el.classList.add('css-compare-hover');
                         }
+
+                        updateTooltip(el);
                     }
 
                     function onMouseOut(e) {
@@ -113,6 +172,7 @@ document.getElementById('selectElement').onclick = async () => {
                         const el = e.target;
                         el.classList.remove('css-compare-hover');
                         el.classList.remove('css-compare-hover-actionable');
+                        tooltip.style.display = 'none';
                     }
 
                     function onClick(e) {
@@ -128,10 +188,11 @@ document.getElementById('selectElement').onclick = async () => {
                         // Apply final highlight
                         el.classList.add('css-compare-highlight');
 
-                        // Cleanup listeners
+                        // Cleanup listeners and elements
                         document.removeEventListener('click', onClick, true);
                         document.removeEventListener('mouseover', onMouseOver, true);
                         document.removeEventListener('mouseout', onMouseOut, true);
+                        tooltip.remove();
 
                         // Get computed styles
                         const computed = window.getComputedStyle(el);
