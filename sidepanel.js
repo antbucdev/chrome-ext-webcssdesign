@@ -464,6 +464,9 @@ function compareCSS(siteCssObj) {
 
         let cssClass = "";
         let displaySiteValue = siteValue;
+        if (siteValue && (siteValue.startsWith('rgb') || siteValue.startsWith('rgba'))) {
+            displaySiteValue = normSite;
+        }
 
         if (!siteValue) {
             // Not set on element -> Warning (Yellow)
