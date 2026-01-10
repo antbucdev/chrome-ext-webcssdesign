@@ -309,8 +309,14 @@ function cssStringToObject(str) {
             const key = parts[0].trim();
             let value = parts.slice(1).join(':').trim();
 
-            // Clean up Figma comments at end of line like " /* secondary */"
-            value = value.replace(/\/\*.*\*\//g, '').trim();
+            // Check for value in comment /* 24px */ or /* 1.5rem */
+            const commentMatch = value.match(/\/\*\s*([\d\.]+(?:px|rem|em|%))\s*\*\//);
+            if (commentMatch) {
+                value = commentMatch[1]; // Use the commented value
+            } else {
+                // Clean up Figma comments at end of line like " /* secondary */"
+                value = value.replace(/\/\*.*\*\//g, '').trim();
+            }
 
             if (key && value) {
                 obj[key.toLowerCase()] = value;
@@ -328,6 +334,32 @@ function cssStringToObject(str) {
         }
     });
     return obj;
+}
+
+/**
+ * Detects base font size from line-height pattern:
+ * line-height: 150 % / * 24px * /
+ * calculation: 24px / 1.5 = 16px
+ */
+function detectBaseFontSize(str) {
+    // Regex to find "line-height: <num>% /* <num>px */"
+    // Handles optional spaces, the % symbol, and optional semicolon
+    const regex = /line-height:\s*([\d\.]+)\s*%\s*;?\s*\/\*\s*([\d\.]+)px\s*\*\//i;
+    const match = str.match(regex);
+
+    if (match) {
+        const percent = parseFloat(match[1]);
+        const px = parseFloat(match[2]);
+
+        if (!isNaN(percent) && !isNaN(px) && percent !== 0) {
+            // 150% = 1.5
+            // px = fontSize * 1.5
+            // fontSize = px / 1.5
+            // fontSize = px / (percent / 100)
+            return px / (percent / 100);
+        }
+    }
+    return 16; // Default
 }
 
 /**
@@ -372,7 +404,11 @@ function rgbToHex(rgb) {
  * Converts rem to px (assuming 16px root).
  * e.g. "1.5rem" -> "24px"
  */
-function normalizeValue(value) {
+/**
+ * Converts rem to px.
+ * e.g. "1.5rem" -> "24px" (if base is 16)
+ */
+function normalizeValue(value, basePx = 16) {
     if (!value) return '';
     let val = value.toString().trim().toLowerCase();
 
@@ -380,7 +416,7 @@ function normalizeValue(value) {
     if (val.endsWith('rem')) {
         const floatVal = parseFloat(val);
         if (!isNaN(floatVal)) {
-            val = (floatVal * 16) + 'px';
+            val = (floatVal * basePx) + 'px';
         }
     }
 
@@ -404,6 +440,7 @@ function displayElementCSS(siteCssObj) {
 function compareCSS(siteCssObj) {
     const figmaInput = document.getElementById("figmaCss").value;
     const figmaObj = cssStringToObject(figmaInput);
+    const basePx = detectBaseFontSize(figmaInput);
 
     let html = "";
     Object.keys(figmaObj).forEach(key => {
@@ -411,8 +448,8 @@ function compareCSS(siteCssObj) {
         let figmaValue = figmaObj[key];
 
         // Normalize for comparison
-        const normSite = normalizeValue(siteValue);
-        const normFigma = normalizeValue(figmaValue);
+        const normSite = normalizeValue(siteValue, basePx);
+        const normFigma = normalizeValue(figmaValue, basePx);
 
         let cssClass = "";
         let displaySiteValue = siteValue;
