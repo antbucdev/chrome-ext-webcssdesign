@@ -405,3 +405,92 @@
       font-size: 14px;
       font-weight: 500;
     }
+
+
+    /* Result Filtering Styles */
+
+    /* Toggle Switch in Results Header */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .results-header h5 {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .edit-mode-toggle {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-color);
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
+    /* Row Wrapper: Holds Checkbox + Content */
+    .result-row-wrapper {
+      display: flex;
+      align-items: center;
+      /* Center checkbox vertically with toast */
+      gap: 8px;
+      margin-bottom: 8px;
+      /* Spacing between rows */
+    }
+
+    /* Ensure the toast (match/diff/warning) grows to fill space */
+    .result-row-wrapper .match,
+    .result-row-wrapper .diff,
+    .result-row-wrapper .warning {
+      flex: 1;
+      margin-bottom: 0 !important;
+      /* Override default margin of toast if any */
+    }
+
+    .result-checkbox {
+      display: none;
+      /* Hidden by default */
+    }
+
+    /* Edit Mode - Active State */
+    .edit-mode .result-checkbox {
+      display: block;
+    }
+
+    /* Hidden Items Appearance */
+    .result-choice-hidden {
+      display: none;
+      /* Completely hidden in normal view */
+    }
+
+    /* In Edit Mode, hidden items are visible but dimmed */
+    .edit-mode .result-choice-hidden {
+      display: flex;
+      /* Restore flex layout */
+    }
+
+    .edit-mode .result-choice-hidden .match,
+    .edit-mode .result-choice-hidden .diff,
+    .edit-mode .result-choice-hidden .warning {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+
+    /* Batch Actions Section */
+    #batchActions {
+      display: none;
+      margin-bottom: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+      font-weight: bold;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .edit-mode #batchActions {
+      display: flex;
+    }

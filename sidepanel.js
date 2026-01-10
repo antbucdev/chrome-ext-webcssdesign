@@ -49,13 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.comparisonResults) {
             document.getElementById('resultsHeader').style.display = 'block';
 
-            // If it was a default title, translate it. If custom (like Error), we might need logic, 
+            // If it was a default title, translate it. If custom (like Error), we might need logic,
             // but usually we just reset to the translated default or keep the old one if it's static.
             // For simplicity, let's allow the stored title but try to translate standard ones if they match known keys?
             // Actually, simpler: just use textContent if it exists, but usually we want to re-translate headers if possible unless it's dynamic.
             // Let's stick to restoring what was there, but maybe refresh the default title if it was the default one.
             document.getElementById('resultsTitle').textContent = data.resultsTitle || locales[currentLanguage].resultsTitleDefault;
             document.getElementById('results').innerHTML = data.comparisonResults;
+
+            // Re-attach listeners to existing checkboxes
+            rebindResultCheckboxes();
         }
 
         // Restore Dark Mode
@@ -108,7 +111,8 @@ document.getElementById('languageSelect').addEventListener('change', (e) => {
 });
 
 // Dark Mode Toggle
-const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
+// Dark Mode Toggle
+const toggleSwitch = document.getElementById('checkbox');
 toggleSwitch.addEventListener('change', function (e) {
     if (e.target.checked) {
         document.body.classList.add('dark-mode');
@@ -599,7 +603,129 @@ function updateResults(title, content) {
     });
 }
 
-function showError(msg) {
-    const html = `<div class="diff"><b>${msg}</b></div>`;
-    updateResults(locales[currentLanguage].resultsTitleError, html);
+// Result Filtering Logic
+const filterToggle = document.getElementById('filterToggle');
+const resultsContainer = document.getElementById('results');
+const batchActions = document.getElementById('batchActions');
+const checkAll = document.getElementById('checkAll');
+
+filterToggle.addEventListener('change', (e) => {
+    toggleEditMode(e.target.checked);
+});
+
+checkAll.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    const checkboxes = resultsContainer.querySelectorAll('.result-checkbox input');
+
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        const wrapper = cb.closest('.result-row-wrapper');
+        if (isChecked) {
+            wrapper.classList.remove('result-choice-hidden');
+        } else {
+            wrapper.classList.add('result-choice-hidden');
+        }
+    });
+    saveResults();
+});
+
+function toggleEditMode(enabled) {
+    if (enabled) {
+        resultsContainer.classList.add('edit-mode');
+        batchActions.style.display = 'flex';
+        injectCheckboxes();
+        updateCheckAllState(); // Sync "Hide all" checkbox with current state
+    } else {
+        resultsContainer.classList.remove('edit-mode');
+        batchActions.style.display = 'none';
+    }
+}
+
+function injectCheckboxes() {
+    // Current structure: <div class="match">...</div>
+    // Target structure: <div class="result-row-wrapper"><div class="result-checkbox">...</div><div class="match">...</div></div>
+
+    // We iterate over children. Note that if we modify the DOM while iterating using childNodes/children directly, it can be tricky.
+    // Using Array.from creates a static list of the initial children.
+    const children = Array.from(resultsContainer.children);
+
+    children.forEach(child => {
+        // Skip if already wrapped (check class)
+        if (child.classList.contains('result-row-wrapper')) {
+            return;
+        }
+
+        // Skip if it's not a result element (e.g. some other noise, though ideally only match/diff/warning are here)
+        if (!child.classList.contains('match') && !child.classList.contains('diff') && !child.classList.contains('warning')) {
+            return;
+        }
+
+        // Create Wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'result-row-wrapper';
+
+        // Create Checkbox Container
+        const checkboxDiv = document.createElement('div');
+        checkboxDiv.className = 'result-checkbox';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        // If the wrapper was previously hidden, we wouldn't know easily unless we check the child?
+        // Actually, if we are wrapping for the first time, it defaults to visible (checked).
+        // If we load from storage, the HTML structure might already be wrapped! 
+        // Wait: `saveResults` saves innerHTML. So if we wrapped it, saved it, then reloaded, 
+        // `resultsContainer.children` will contain `.result-row-wrapper` elements.
+        // So the "Skip if already wrapped" check above is crucial and handles persistence structure.
+
+        checkbox.checked = true; // Default to checked/visible when first creating
+
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                wrapper.classList.remove('result-choice-hidden');
+            } else {
+                wrapper.classList.add('result-choice-hidden');
+            }
+
+            // Update "Select All" state
+            updateCheckAllState();
+            saveResults();
+        });
+
+        checkboxDiv.appendChild(checkbox);
+
+        // Insert wrapper before child
+        resultsContainer.insertBefore(wrapper, child);
+        // Move child into wrapper
+        wrapper.appendChild(checkboxDiv);
+        wrapper.appendChild(child);
+    });
+}
+
+function updateCheckAllState() {
+    const all = resultsContainer.querySelectorAll('.result-checkbox input');
+    if (all.length === 0) return;
+    const allChecked = Array.from(all).every(c => c.checked);
+    checkAll.checked = allChecked;
+}
+
+function rebindResultCheckboxes() {
+    // This runs on load. The HTML might contain wrappers.
+    const checkboxes = resultsContainer.querySelectorAll('.result-checkbox input');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const wrapper = cb.closest('.result-row-wrapper');
+            if (e.target.checked) {
+                wrapper.classList.remove('result-choice-hidden');
+            } else {
+                wrapper.classList.add('result-choice-hidden');
+            }
+            updateCheckAllState();
+            saveResults();
+        });
+    });
+}
+
+function saveResults() {
+    const html = resultsContainer.innerHTML;
+    chrome.storage.local.set({ comparisonResults: html });
 }

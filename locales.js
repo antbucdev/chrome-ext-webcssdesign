@@ -18,11 +18,12 @@ const locales = {
         btnEnable: "Enable Access",
         statusActive: "Active",
         errorSelect: "Please select a website element first (Step 1)",
-        errorPaste: "Please paste Figma CSS code first (Step 2)"
+        errorPaste: "Please paste Figma CSS code first (Step 2)",
+        lblHideDisplayAll: "Hide all / Display all"
     },
     es: {
         headerTitle: "Comparación CSS",
-        step1Title: "🎯 Paso 1: Seleccionar Elemento Web",
+        step1Title: "🎯 Paso 1: Selecionar Elemento Web",
         btnSelect: "Seleccionar Elemento",
         step2Title: "📋 Paso 2: Pegar Código CSS de Figma",
         placeholderFigma: "Pega tu código CSS de Figma aquí...",
@@ -39,7 +40,8 @@ const locales = {
         btnEnable: "Habilitar Acceso",
         statusActive: "Activo",
         errorSelect: "Por favor selecciona un elemento web primero (Paso 1)",
-        errorPaste: "Por favor pega el código CSS de Figma primero (Paso 2)"
+        errorPaste: "Por favor pega el código CSS de Figma primero (Paso 2)",
+        lblHideDisplayAll: "Ocultar todo / Mostrar todo"
     },
     pt: {
         headerTitle: "Comparação CSS",
@@ -60,7 +62,8 @@ const locales = {
         btnEnable: "Habilitar Acesso",
         statusActive: "Ativo",
         errorSelect: "Por favor, selecione um elemento primeiro (Passo 1)",
-        errorPaste: "Por favor, cole o código CSS do Figma primeiro (Passo 2)"
+        errorPaste: "Por favor, cole o código CSS do Figma primeiro (Passo 2)",
+        lblHideDisplayAll: "Ocultar tudo / Mostrar tudo"
     },
     it: {
         headerTitle: "Confronto CSS",
@@ -81,7 +84,8 @@ const locales = {
         btnEnable: "Abilita Accesso",
         statusActive: "Attivo",
         errorSelect: "Seleziona prima un elemento del sito (Fase 1)",
-        errorPaste: "Incolla prima il codice CSS di Figma (Fase 2)"
+        errorPaste: "Incolla prima il codice CSS di Figma (Fase 2)",
+        lblHideDisplayAll: "Nascondi tutto / Mostra tutto"
     },
     de: {
         headerTitle: "CSS Vergleich",
@@ -102,7 +106,8 @@ const locales = {
         btnEnable: "Zugriff aktivieren",
         statusActive: "Aktiv",
         errorSelect: "Bitte wählen Sie zuerst ein Website-Element aus (Schritt 1)",
-        errorPaste: "Bitte fügen Sie zuerst den Figma CSS-Code ein (Schritt 2)"
+        errorPaste: "Bitte fügen Sie zuerst den Figma CSS-Code ein (Schritt 2)",
+        lblHideDisplayAll: "Alles verbergen / Alles anzeigen"
     },
     nl: {
         headerTitle: "CSS Vergelijking",
@@ -123,7 +128,8 @@ const locales = {
         btnEnable: "Toegang Inschakelen",
         statusActive: "Actief",
         errorSelect: "Selecteer eerst een website-element (Stap 1)",
-        errorPaste: "Plak eerst de Figma CSS-code (Stap 2)"
+        errorPaste: "Plak eerst de Figma CSS-code (Stap 2)",
+        lblHideDisplayAll: "Alles verbergen / Alles tonen"
     },
     zh: {
         headerTitle: "CSS 比较",
@@ -144,7 +150,8 @@ const locales = {
         btnEnable: "启用访问",
         statusActive: "已启用",
         errorSelect: "请先选择一个网页元素（第一步）",
-        errorPaste: "请先粘贴 Figma CSS 代码（第二步）"
+        errorPaste: "请先粘贴 Figma CSS 代码（第二步）",
+        lblHideDisplayAll: "全部隐藏 / 显示全部"
     },
     ja: {
         headerTitle: "CSS 比較",
@@ -165,6 +172,7 @@ const locales = {
         btnEnable: "アクセスを有効化",
         statusActive: "有効",
         errorSelect: "最初にウェブサイトの要素を選択してください（ステップ 1）",
-        errorPaste: "最初に Figma CSS コードを貼り付けてください（ステップ 2）"
+        errorPaste: "最初に Figma CSS コードを貼り付けてください（ステップ 2）",
+        lblHideDisplayAll: "すべて隠す / すべて表示"
     }
 };

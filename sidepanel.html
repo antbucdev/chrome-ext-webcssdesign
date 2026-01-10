@@ -40,6 +40,16 @@
     <div class="results-section">
         <div class="results-header" id="resultsHeader" style="display: none;">
             <h5 id="resultsTitle" data-i18n="resultsTitleDefault">📊 Selected Element CSS</h5>
+            <div class="edit-mode-toggle">
+                <label class="theme-switch" for="filterToggle" style="transform: scale(0.8);">
+                    <input type="checkbox" id="filterToggle" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </div>
+        <div id="batchActions">
+            <input type="checkbox" id="checkAll" checked>
+            <label for="checkAll" data-i18n="lblHideDisplayAll">Hide all / Display all</label>
         </div>
         <div id="results"></div>
     </div>
