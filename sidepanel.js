@@ -1,9 +1,30 @@
 // Store for selected element CSS
 let selectedElementCSS = null;
+let currentLanguage = 'en';
 
 // Restore saved state when popup opens
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.storage.local.get(['figmaCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode'], (data) => {
+    chrome.storage.local.get(['figmaCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language'], (data) => {
+        // Language Setup
+        if (data.language) {
+            currentLanguage = data.language;
+        } else {
+            // Auto-detect browser language
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang && browserLang.startsWith('es')) {
+                currentLanguage = 'es';
+            } else {
+                currentLanguage = 'en';
+            }
+            // Save initial default
+            chrome.storage.local.set({ language: currentLanguage });
+        }
+
+        // Set dropdown value and apply translations
+        const langSelect = document.getElementById('languageSelect');
+        if (langSelect) langSelect.value = currentLanguage;
+        applyTranslations(currentLanguage);
+
         // Restore inputs
         if (data.figmaCss) {
             document.getElementById('figmaCss').value = data.figmaCss;
@@ -15,7 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Restore results view
         if (data.comparisonResults) {
             document.getElementById('resultsHeader').style.display = 'block';
-            document.getElementById('resultsTitle').textContent = data.resultsTitle || '📊 Selected Element CSS';
+
+            // If it was a default title, translate it. If custom (like Error), we might need logic, 
+            // but usually we just reset to the translated default or keep the old one if it's static.
+            // For simplicity, let's allow the stored title but try to translate standard ones if they match known keys?
+            // Actually, simpler: just use textContent if it exists, but usually we want to re-translate headers if possible unless it's dynamic.
+            // Let's stick to restoring what was there, but maybe refresh the default title if it was the default one.
+            document.getElementById('resultsTitle').textContent = data.resultsTitle || locales[currentLanguage].resultsTitleDefault;
             document.getElementById('results').innerHTML = data.comparisonResults;
         }
 
@@ -25,6 +52,47 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('checkbox').checked = true;
         }
     });
+});
+
+function applyTranslations(lang) {
+    currentLanguage = lang;
+    const texts = locales[lang];
+    if (!texts) return;
+
+    // Static elements
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (texts[key]) {
+            el.textContent = texts[key];
+        }
+    });
+
+    // Placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (texts[key]) {
+            el.placeholder = texts[key];
+        }
+    });
+
+    // Dynamic Updates (that might need refresh)
+    const incognitoBtn = document.getElementById('incognitoBtn');
+    if (incognitoBtn && incognitoBtn.disabled) {
+        incognitoBtn.textContent = texts.statusActive;
+    } else if (incognitoBtn) {
+        incognitoBtn.textContent = texts.btnEnable;
+    }
+}
+
+// Language Toggle
+document.getElementById('languageSelect').addEventListener('change', (e) => {
+    const newLang = e.target.value;
+    currentLanguage = newLang;
+    chrome.storage.local.set({ language: newLang });
+    applyTranslations(newLang);
+
+    // Refresh Incognito button text if visible
+    checkIncognitoStatus();
 });
 
 // Dark Mode Toggle
@@ -52,13 +120,14 @@ btn.onclick = function () {
 function checkIncognitoStatus() {
     chrome.extension.isAllowedIncognitoAccess((isAllowed) => {
         const incognitoBtn = document.getElementById('incognitoBtn');
+        const texts = locales[currentLanguage];
         if (isAllowed) {
-            incognitoBtn.textContent = 'Active';
+            incognitoBtn.textContent = texts.statusActive;
             incognitoBtn.disabled = true;
             incognitoBtn.style.opacity = '0.6';
             incognitoBtn.style.cursor = 'default';
         } else {
-            incognitoBtn.textContent = 'Enable Access';
+            incognitoBtn.textContent = texts.btnEnable;
             incognitoBtn.disabled = false;
             incognitoBtn.style.opacity = '1';
             incognitoBtn.style.cursor = 'pointer';
@@ -285,12 +354,12 @@ document.getElementById('selectElement').onclick = async () => {
 // Compare Logic
 document.getElementById('compareBtn').onclick = () => {
     if (!selectedElementCSS) {
-        showError('Please select a website element first (Step 1)');
+        showError(locales[currentLanguage].errorSelect);
         return;
     }
     const figmaInput = document.getElementById('figmaCss').value;
     if (!figmaInput.trim()) {
-        showError('Please paste Figma CSS code first (Step 2)');
+        showError(locales[currentLanguage].errorPaste);
         return;
     }
     compareCSS(selectedElementCSS);
@@ -466,7 +535,7 @@ function displayElementCSS(siteCssObj) {
     Object.keys(siteCssObj).forEach(key => {
         html += `<div class="match"><b>${key}:</b> <code>${siteCssObj[key]}</code></div>`;
     });
-    updateResults('📊 Selected Element CSS', html);
+    updateResults(locales[currentLanguage].resultsTitleDefault, html);
 }
 
 function compareCSS(siteCssObj) {
@@ -504,7 +573,7 @@ function compareCSS(siteCssObj) {
         html += `<div class="${cssClass}"><b>${key}:</b> Figma: <code>${figmaValue}</code> &rarr; Site: <code>${displaySiteValue}</code></div>`;
     });
 
-    updateResults('📊 CSS Comparison Results', html);
+    updateResults(locales[currentLanguage].resultsTitleCompare, html);
 }
 
 function updateResults(title, content) {
@@ -520,5 +589,5 @@ function updateResults(title, content) {
 
 function showError(msg) {
     const html = `<div class="diff"><b>${msg}</b></div>`;
-    updateResults('⚠️ Error', html);
+    updateResults(locales[currentLanguage].resultsTitleError, html);
 }
