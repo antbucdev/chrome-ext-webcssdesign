@@ -39,6 +39,25 @@ toggleSwitch.addEventListener('change', function (e) {
     }
 });
 
+// Settings Modal Logic
+const modal = document.getElementById("settingsModal");
+const btn = document.getElementById("settingsBtn");
+const span = document.getElementsByClassName("close")[0];
+
+btn.onclick = function () {
+    modal.style.display = "block";
+}
+
+span.onclick = function () {
+    modal.style.display = "none";
+}
+
+window.onclick = function (event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
 // Save Figma CSS properties whenever user types
 document.getElementById('figmaCss').addEventListener('input', (e) => {
     chrome.storage.local.set({ figmaCss: e.target.value });
