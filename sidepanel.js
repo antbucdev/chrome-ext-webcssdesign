@@ -52,15 +52,86 @@ document.getElementById('selectElement').onclick = async () => {
             func: () => {
                 return new Promise((resolve) => {
                     const style = document.createElement('style');
-                    style.innerHTML = `.css-compare-highlight { outline: 2px solid #0057b7 !important; }`;
+                    style.innerHTML = `
+                        .css-compare-highlight { 
+                            outline: 2px solid #0057b7 !important; 
+                            z-index: 10000 !important;
+                        }
+                        .css-compare-hover {
+                            outline: 2px dashed #4a90e2 !important;
+                            cursor: crosshair !important;
+                            z-index: 10000 !important;
+                        }
+                        .css-compare-hover-actionable {
+                            outline: 2px solid #ff9900 !important;
+                            cursor: pointer !important;
+                            z-index: 10000 !important;
+                        }
+                    `;
                     document.head.appendChild(style);
+
+                    let currentHovered = null;
+
+                    function isActionable(el) {
+                        const tag = el.tagName.toLowerCase();
+                        const actionableTags = ['a', 'button', 'input', 'select', 'textarea', 'label'];
+                        if (actionableTags.includes(tag)) return true;
+
+                        // Check for cursor: pointer
+                        const computed = window.getComputedStyle(el);
+                        return computed.cursor === 'pointer';
+                    }
+
+                    // Helper to clear hover classes
+                    function clearHover() {
+                        const hovered = document.querySelectorAll('.css-compare-hover, .css-compare-hover-actionable');
+                        hovered.forEach(el => {
+                            el.classList.remove('css-compare-hover');
+                            el.classList.remove('css-compare-hover-actionable');
+                        });
+                    }
+
+                    function onMouseOver(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Clear previous hover
+                        clearHover();
+
+                        const el = e.target;
+                        currentHovered = el;
+
+                        if (isActionable(el)) {
+                            el.classList.add('css-compare-hover-actionable');
+                        } else {
+                            el.classList.add('css-compare-hover');
+                        }
+                    }
+
+                    function onMouseOut(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const el = e.target;
+                        el.classList.remove('css-compare-hover');
+                        el.classList.remove('css-compare-hover-actionable');
+                    }
 
                     function onClick(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        const el = e.target;
+
+                        // Use the current hovered element or target
+                        const el = currentHovered || e.target;
+
+                        // Clear hover effects
+                        clearHover();
+
+                        // Apply final highlight
                         el.classList.add('css-compare-highlight');
+
+                        // Cleanup listeners
                         document.removeEventListener('click', onClick, true);
+                        document.removeEventListener('mouseover', onMouseOver, true);
+                        document.removeEventListener('mouseout', onMouseOut, true);
 
                         // Get computed styles
                         const computed = window.getComputedStyle(el);
@@ -94,6 +165,9 @@ document.getElementById('selectElement').onclick = async () => {
                         resolve(cssObj);
                     }
 
+                    // Use capture to ensuring we get the event first
+                    document.addEventListener('mouseover', onMouseOver, true);
+                    document.addEventListener('mouseout', onMouseOut, true);
                     document.addEventListener('click', onClick, true);
                 });
             }
