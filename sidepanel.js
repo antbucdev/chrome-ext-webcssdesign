@@ -10,9 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
             currentLanguage = data.language;
         } else {
             // Auto-detect browser language
-            const browserLang = navigator.language || navigator.userLanguage;
-            if (browserLang && browserLang.startsWith('es')) {
+            const browserLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+            if (browserLang.startsWith('es')) {
                 currentLanguage = 'es';
+            } else if (browserLang.startsWith('pt')) {
+                currentLanguage = 'pt';
+            } else if (browserLang.startsWith('it')) {
+                currentLanguage = 'it';
+            } else if (browserLang.startsWith('de')) {
+                currentLanguage = 'de';
+            } else if (browserLang.startsWith('nl')) {
+                currentLanguage = 'nl';
+            } else if (browserLang.startsWith('zh')) {
+                currentLanguage = 'zh';
+            } else if (browserLang.startsWith('ja')) {
+                currentLanguage = 'ja';
             } else {
                 currentLanguage = 'en';
             }
