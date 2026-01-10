@@ -318,6 +318,17 @@ function cssStringToObject(str) {
                 value = value.replace(/\/\*.*\*\//g, '').trim();
             }
 
+            // NEW: Handle Figma variables with fallbacks
+            // Check for syntax: var(--name, #fallback)
+            const varMatch = value.match(/var\(--[^,]+,\s*([^)]+)\)/);
+            if (varMatch) {
+                value = varMatch[1].trim();
+            } else if (value.startsWith('--') && value.includes(',')) {
+                // Check for syntax: --name, #fallback
+                // Extract everything after the first comma
+                value = value.substring(value.indexOf(',') + 1).trim();
+            }
+
             if (key && value) {
                 obj[key.toLowerCase()] = value;
             }
