@@ -101,8 +101,8 @@ Your extension now has a **professional Bootstrap-inspired design** with modern 
 
 ## 📁 Files Modified
 
-- [popup.html](file:///c:/Users/antho/Downloads/my_chrome_extensions_Nov-2025/webcssfigma/popup.html) - Complete redesign with Bootstrap-style structure
-- [popup.js](file:///c:/Users/antho/Downloads/my_chrome_extensions_Nov-2025/webcssfigma/popup.js) - Updated to show/hide results header dynamically
+- [popup.html](file:///c:/Users/antho/Downloads/my_chrome_extensions_Nov-2025/webcssdesign/popup.html) - Complete redesign with Bootstrap-style structure
+- [popup.js](file:///c:/Users/antho/Downloads/my_chrome_extensions_Nov-2025/webcssdesign/popup.js) - Updated to show/hide results header dynamically
 
 ---
 
