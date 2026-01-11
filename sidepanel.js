@@ -4,7 +4,7 @@ let currentLanguage = 'en';
 
 // Restore saved state when popup opens
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.storage.local.get(['figmaCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language'], (data) => {
+    chrome.storage.local.get(['figmaCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly'], (data) => {
         // Language Setup
         if (data.language) {
             currentLanguage = data.language;
@@ -66,6 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.add('dark-mode');
             document.getElementById('checkbox').checked = true;
         }
+
+        // Restore Common Props Only toggle
+        if (data.commonPropsOnly) {
+            document.getElementById('commonPropsToggle').checked = true;
+        }
     });
 });
 
@@ -111,7 +116,6 @@ document.getElementById('languageSelect').addEventListener('change', (e) => {
 });
 
 // Dark Mode Toggle
-// Dark Mode Toggle
 const toggleSwitch = document.getElementById('checkbox');
 toggleSwitch.addEventListener('change', function (e) {
     if (e.target.checked) {
@@ -121,6 +125,12 @@ toggleSwitch.addEventListener('change', function (e) {
         document.body.classList.remove('dark-mode');
         chrome.storage.local.set({ darkMode: false });
     }
+});
+
+// Common Properties Only Toggle
+const commonPropsToggle = document.getElementById('commonPropsToggle');
+commonPropsToggle.addEventListener('change', function (e) {
+    chrome.storage.local.set({ commonPropsOnly: e.target.checked });
 });
 
 // Settings Modal Logic
@@ -559,10 +569,18 @@ function compareCSS(siteCssObj) {
     const figmaObj = cssStringToObject(figmaInput);
     const basePx = detectBaseFontSize(figmaInput);
 
+    // Check if "Compare common properties only" is enabled
+    const commonPropsOnly = document.getElementById('commonPropsToggle').checked;
+
     let html = "";
     Object.keys(figmaObj).forEach(key => {
         let siteValue = siteCssObj[key] || '';
         let figmaValue = figmaObj[key];
+
+        // Skip warning results if "Compare common properties only" is enabled
+        if (commonPropsOnly && !siteValue) {
+            return; // Skip properties not set on the website
+        }
 
         // Normalize for comparison
         const normSite = normalizeValue(siteValue, basePx);
