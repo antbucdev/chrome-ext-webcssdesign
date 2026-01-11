@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Design CSS Compare",
+  "description": "Compare Design CSS with webpage elements in a persistent side panel.",
+  "version": "1.1",
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "128": "icon.png"
+  },
+  "incognito": "spanning",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open CSS Compare Panel",
+    "default_icon": {
+      "128": "icon.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}

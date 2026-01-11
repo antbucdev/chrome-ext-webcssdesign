@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Design CSS Compare</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+
+<body>
+    <div class="header">
+        <h3 data-i18n="headerTitle">CSS Comparison</h3>
+        <button id="settingsBtn" class="icon-btn" title="Settings">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
+            </svg>
+        </button>
+    </div>
+
+    <div class="form-group">
+        <h4 data-i18n="step1Title">🎯 Step 1: Select Website Element</h4>
+        <button id="selectElement" data-i18n="btnSelect">Select Element</button>
+    </div>
+
+    <div class="form-group">
+        <h4 data-i18n="step2Title">📋 Step 2: Paste Design CSS Code</h4>
+        <textarea id="designCss" placeholder="Paste your Design CSS code here..."
+            data-i18n-placeholder="placeholderDesign"></textarea>
+    </div>
+
+    <div class="button-group">
+        <button id="compareBtn" data-i18n="btnCompare">✓ Compare CSS</button>
+        <button id="clearData" data-i18n="btnClear">🗑️ Clear</button>
+    </div>
+
+    <div class="results-section">
+        <div class="results-header" id="resultsHeader" style="display: none;">
+            <h5 id="resultsTitle" data-i18n="resultsTitleDefault">📊 Selected Element CSS</h5>
+            <div class="edit-mode-toggle">
+                <label class="theme-switch" for="filterToggle" style="transform: scale(0.8);">
+                    <input type="checkbox" id="filterToggle" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </div>
+        <div id="batchActions">
+            <input type="checkbox" id="checkAll" checked>
+            <label for="checkAll" data-i18n="lblHideDisplayAll">Hide all / Display all</label>
+        </div>
+        <div id="results"></div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 data-i18n="settingsTitle">Settings</h5>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item" style="margin-bottom: 15px;">
+                    <span data-i18n="settingLanguage">Language</span>
+                    <select id="languageSelect"
+                        style="padding: 4px; border-radius: 4px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="pt">Português</option>
+                        <option value="it">Italiano</option>
+                        <option value="de">Deutsch</option>
+                        <option value="nl">Nederlands</option>
+                        <option value="zh">中文</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <span data-i18n="settingDarkMode">Dark Mode</span>
+                    <label class="theme-switch" for="checkbox">
+                        <input type="checkbox" id="checkbox" />
+                        <div class="slider round"></div>
+                    </label>
+                </div>
+                <div class="setting-item" style="margin-top: 15px; align-items: flex-end;">
+                    <span data-i18n="settingCommonPropsOnly" style="flex: 1;">Compare common properties only</span>
+                    <label class="theme-switch" for="commonPropsToggle" style="flex: 0 0 auto; margin-bottom: 2px;">
+                        <input type="checkbox" id="commonPropsToggle" />
+                        <div class="slider round"></div>
+                    </label>
+                </div>
+                <div class="setting-item" style="margin-top: 15px;">
+                    <span data-i18n="settingIncognito">Incognito Access</span>
+                    <button id="incognitoBtn" data-i18n="btnCheck"
+                        style="flex: 0 0 auto; padding: 6px 12px; font-size: 12px;">Check</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="locales.js"></script>
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>
