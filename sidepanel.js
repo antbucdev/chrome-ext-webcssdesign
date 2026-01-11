@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Restore results view
         if (data.comparisonResults) {
-            document.getElementById('resultsHeader').style.display = 'block';
+            document.getElementById('resultsHeader').style.display = 'flex';
 
             // If it was a default title, translate it. If custom (like Error), we might need logic,
             // but usually we just reset to the translated default or keep the old one if it's static.
@@ -593,7 +593,7 @@ function compareCSS(siteCssObj) {
 }
 
 function updateResults(title, content) {
-    document.getElementById('resultsHeader').style.display = 'block';
+    document.getElementById('resultsHeader').style.display = 'flex';
     document.getElementById('resultsTitle').textContent = title;
     document.getElementById("results").innerHTML = content;
 

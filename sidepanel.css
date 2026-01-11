@@ -249,6 +249,10 @@
     }
 
     .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
       padding: 10px 0;
       border-bottom: 2px solid var(--header-border);
       margin-bottom: 12px;
@@ -408,19 +412,6 @@
 
 
     /* Result Filtering Styles */
-
-    /* Toggle Switch in Results Header */
-    .results-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-    }
-
-    .results-header h5 {
-      margin: 0;
-      flex: 0 0 auto;
-    }
 
     .edit-mode-toggle {
       display: flex;
