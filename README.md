@@ -54,4 +54,5 @@ A Chrome extension that compares CSS properties from Design designs with actual 
 
 ## License
 
-This project is open source and available for personal and commercial use.
+This project is open source and available for personal and commercial use (Apache License 2.0).
+
