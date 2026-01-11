@@ -20,14 +20,16 @@ const locales = {
         statusActive: "Active",
         errorSelect: "Please select a website element first (Step 1)",
         errorPaste: "Please paste Design CSS code first (Step 2)",
-        lblHideDisplayAll: "Hide all / Display all"
+        lblHideDisplayAll: "Hide all / Display all",
+        lblDesign: "Design",
+        lblWeb: "Web"
     },
     es: {
         headerTitle: "Comparación CSS",
         step1Title: "🎯 Paso 1: Selecionar Elemento Web",
         btnSelect: "Seleccionar Elemento",
-        step2Title: "📋 Paso 2: Pegar Código CSS de Design",
-        placeholderDesign: "Pega tu código CSS de Design aquí...",
+        step2Title: "📋 Paso 2: Pegar Código CSS del Diseño",
+        placeholderDesign: "Pega tu código CSS del diseño aquí...",
         btnCompare: "✓ Comparar CSS",
         btnClear: "🗑️ Limpiar",
         resultsTitleDefault: "📊 CSS del Elemento Seleccionado",
@@ -42,18 +44,20 @@ const locales = {
         btnEnable: "Habilitar Acceso",
         statusActive: "Activo",
         errorSelect: "Por favor selecciona un elemento web primero (Paso 1)",
-        errorPaste: "Por favor pega el código CSS de Design primero (Paso 2)",
-        lblHideDisplayAll: "Ocultar todo / Mostrar todo"
+        errorPaste: "Por favor pega el código CSS del diseño primero (Paso 2)",
+        lblHideDisplayAll: "Ocultar todo / Mostrar todo",
+        lblDesign: "Diseño",
+        lblWeb: "Web"
     },
     pt: {
         headerTitle: "Comparação CSS",
         step1Title: "🎯 Passo 1: Selecionar Elemento",
         btnSelect: "Selecionar Elemento",
         step2Title: "📋 Passo 2: Colar CSS do Design",
-        placeholderDesign: "Cole seu código CSS do Design aqui...",
+        placeholderDesign: "Cole seu código CSS do design aqui...",
         btnCompare: "✓ Comparar CSS",
         btnClear: "🗑️ Limpar",
-        resultsTitleDefault: "📊 CSS do Elemento Selecionado",
+        resultsTitleDefault: "📊 CSS do Elemento Seleccionado",
         resultsTitleCompare: "📊 Comparação CSS",
         resultsTitleError: "⚠️ Erro",
         settingsTitle: "Configurações",
@@ -65,15 +69,17 @@ const locales = {
         btnEnable: "Habilitar Acesso",
         statusActive: "Ativo",
         errorSelect: "Por favor, selecione um elemento primeiro (Passo 1)",
-        errorPaste: "Por favor, cole o código CSS do Design primeiro (Passo 2)",
-        lblHideDisplayAll: "Ocultar tudo / Mostrar tudo"
+        errorPaste: "Por favor, cole o código CSS do design primeiro (Passo 2)",
+        lblHideDisplayAll: "Ocultar tudo / Mostrar tudo",
+        lblDesign: "Design",
+        lblWeb: "Web"
     },
     it: {
         headerTitle: "Confronto CSS",
         step1Title: "🎯 Fase 1: Seleziona Elemento",
         btnSelect: "Seleziona Elemento",
-        step2Title: "📋 Fase 2: Incolla CSS Design",
-        placeholderDesign: "Incolla qui il tuo codice CSS Design...",
+        step2Title: "📋 Fase 2: Incolla CSS del Design",
+        placeholderDesign: "Incolla qui il tuo codice CSS del design...",
         btnCompare: "✓ Confronta CSS",
         btnClear: "🗑️ Pulisci",
         resultsTitleDefault: "📊 CSS Elemento Selezionato",
@@ -88,15 +94,17 @@ const locales = {
         btnEnable: "Abilita Accesso",
         statusActive: "Attivo",
         errorSelect: "Seleziona prima un elemento del sito (Fase 1)",
-        errorPaste: "Incolla prima il codice CSS di Design (Fase 2)",
-        lblHideDisplayAll: "Nascondi tutto / Mostra tutto"
+        errorPaste: "Incolla prima il codice CSS del design (Fase 2)",
+        lblHideDisplayAll: "Nascondi tutto / Mostra tutto",
+        lblDesign: "Design",
+        lblWeb: "Web"
     },
     de: {
         headerTitle: "CSS Vergleich",
         step1Title: "🎯 Schritt 1: Element auswählen",
         btnSelect: "Element auswählen",
-        step2Title: "📋 Schritt 2: Design CSS einfügen",
-        placeholderDesign: "Fügen Sie hier Ihren Design CSS-Code ein...",
+        step2Title: "📋 Schritt 2: Design-CSS einfatigen",
+        placeholderDesign: "Fügen Sie hier Ihren Design-CSS-Code ein...",
         btnCompare: "✓ CSS vergleichen",
         btnClear: "🗑️ Löschen",
         resultsTitleDefault: "📊 Ausgewähltes Element CSS",
@@ -111,15 +119,17 @@ const locales = {
         btnEnable: "Zugriff aktivieren",
         statusActive: "Aktiv",
         errorSelect: "Bitte wählen Sie zuerst ein Website-Element aus (Schritt 1)",
-        errorPaste: "Bitte fügen Sie zuerst den Design CSS-Code ein (Schritt 2)",
-        lblHideDisplayAll: "Alles verbergen / Alles anzeigen"
+        errorPaste: "Bitte fügen Sie zuerst den Design-CSS-Code ein (Schritt 2)",
+        lblHideDisplayAll: "Alles verbergen / Alles anzeigen",
+        lblDesign: "Design",
+        lblWeb: "Web"
     },
     nl: {
         headerTitle: "CSS Vergelijking",
         step1Title: "🎯 Stap 1: Selecteer Element",
         btnSelect: "Selecteer Element",
-        step2Title: "📋 Stap 2: Plak Design CSS",
-        placeholderDesign: "Plak hier je Design CSS-code...",
+        step2Title: "📋 Stap 2: Ontwerp-CSS plakken",
+        placeholderDesign: "Plak hier je ontwerp-CSS-code...",
         btnCompare: "✓ Vergelijk CSS",
         btnClear: "🗑️ Wissen",
         resultsTitleDefault: "📊 Geselecteerd Element CSS",
@@ -134,15 +144,17 @@ const locales = {
         btnEnable: "Toegang Inschakelen",
         statusActive: "Actief",
         errorSelect: "Selecteer eerst een website-element (Stap 1)",
-        errorPaste: "Plak eerst de Design CSS-code (Stap 2)",
-        lblHideDisplayAll: "Alles verbergen / Alles tonen"
+        errorPaste: "Plak eerst de ontwerp-CSS-code (Stap 2)",
+        lblHideDisplayAll: "Alles verbergen / Alles tonen",
+        lblDesign: "Ontwerp",
+        lblWeb: "Web"
     },
     zh: {
         headerTitle: "CSS 比较",
         step1Title: "🎯 第一步：选择网页元素",
         btnSelect: "选择元素",
-        step2Title: "📋 第二步：粘贴 Design CSS",
-        placeholderDesign: "在这里粘贴您的 Design CSS 代码...",
+        step2Title: "📋 第二步：粘贴设计 CSS 代码",
+        placeholderDesign: "在这里粘贴您的设计 CSS 代码...",
         btnCompare: "✓ 比较 CSS",
         btnClear: "🗑️ 清除",
         resultsTitleDefault: "📊 选定元素的 CSS",
@@ -157,15 +169,17 @@ const locales = {
         btnEnable: "启用访问",
         statusActive: "已启用",
         errorSelect: "请先选择一个网页元素（第一步）",
-        errorPaste: "请先粘贴 Design CSS 代码（第二步）",
-        lblHideDisplayAll: "全部隐藏 / 显示全部"
+        errorPaste: "请先粘贴设计 CSS 代码（第二步）",
+        lblHideDisplayAll: "全部隐藏 / 显示全部",
+        lblDesign: "设计",
+        lblWeb: "网页"
     },
     ja: {
         headerTitle: "CSS 比較",
         step1Title: "🎯 ステップ 1: 要素を選択",
         btnSelect: "要素を選択",
-        step2Title: "📋 ステップ 2: Design CSS を貼り付け",
-        placeholderDesign: "ここに Design CSS コードを貼り付けてください...",
+        step2Title: "📋 ステップ 2: デザインの CSS を貼り付け",
+        placeholderDesign: "ここにデザインの CSS コードを貼り付けてください...",
         btnCompare: "✓ CSS を比較",
         btnClear: "🗑️ クリア",
         resultsTitleDefault: "📊 選択された要素の CSS",
@@ -180,7 +194,9 @@ const locales = {
         btnEnable: "アクセスを有効化",
         statusActive: "有効",
         errorSelect: "最初にウェブサイトの要素を選択してください（ステップ 1）",
-        errorPaste: "最初に Design CSS コードを貼り付けてください（ステップ 2）",
-        lblHideDisplayAll: "すべて隠す / すべて表示"
+        errorPaste: "最初にデザインの CSS コードを貼り付けてください（ステップ 2）",
+        lblHideDisplayAll: "すべて隠す / すべて表示",
+        lblDesign: "デザイン",
+        lblWeb: "Web"
     }
 };

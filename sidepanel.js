@@ -604,7 +604,9 @@ function compareCSS(siteCssObj) {
             cssClass = "diff";
         }
 
-        html += `<div class="${cssClass}"><b>${key}:</b> Design: <code>${designValue}</code> &rarr; Site: <code>${displaySiteValue}</code></div>`;
+        const designLabel = locales[currentLanguage].lblDesign || 'Design';
+        const webLabel = locales[currentLanguage].lblWeb || 'Web';
+        html += `<div class="${cssClass}"><b>${key}:</b> ${designLabel}: <code>${designValue}</code> &rarr; ${webLabel}: <code>${displaySiteValue}</code></div>`;
     });
 
     updateResults(locales[currentLanguage].resultsTitleCompare, html);
