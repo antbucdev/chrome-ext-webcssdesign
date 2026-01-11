@@ -1,12 +1,12 @@
-# Figma CSS Compare - Chrome Extension
+# Design CSS Compare - Chrome Extension
 
-A Chrome extension that compares CSS properties from Figma designs with actual webpage elements.
+A Chrome extension that compares CSS properties from Design designs with actual webpage elements.
 
 ## Features
 
-- 📋 Paste CSS code from Figma designs
+- 📋 Paste CSS code from Design designs
 - 🎯 Select any element on a webpage to extract its CSS
-- 📊 Compare Figma CSS with website CSS
+- 📊 Compare Design CSS with website CSS
 - ✅ Green highlighting for matching properties
 - ❌ Red highlighting for differences
 - 💾 Persistent data - your CSS is saved even after closing the popup
@@ -23,7 +23,7 @@ A Chrome extension that compares CSS properties from Figma designs with actual w
 ## Usage
 
 1. Click the extension icon in your Chrome toolbar
-2. Paste your Figma CSS code in the textarea
+2. Paste your Design CSS code in the textarea
 3. Click "🎯 Select Element" button
 4. Click on any element on the webpage you want to compare
 5. Reopen the extension popup to see the comparison results
@@ -45,7 +45,7 @@ A Chrome extension that compares CSS properties from Figma designs with actual w
 
 - `scripting` - To inject element selection script into web pages
 - `activeTab` - To interact with the current active tab
-- `storage` - To save Figma CSS and comparison results
+- `storage` - To save Design CSS and comparison results
 - `host_permissions: <all_urls>` - To work on any website
 
 ## Version

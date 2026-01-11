@@ -4,7 +4,7 @@ let currentLanguage = 'en';
 
 // Restore saved state when popup opens
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.storage.local.get(['figmaCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly'], (data) => {
+    chrome.storage.local.get(['designCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly'], (data) => {
         // Language Setup
         if (data.language) {
             currentLanguage = data.language;
@@ -38,8 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTranslations(currentLanguage);
 
         // Restore inputs
-        if (data.figmaCss) {
-            document.getElementById('figmaCss').value = data.figmaCss;
+        if (data.designCss) {
+            document.getElementById('designCss').value = data.designCss;
         }
         if (data.selectedElementCSS) {
             selectedElementCSS = data.selectedElementCSS;
@@ -174,9 +174,9 @@ window.onclick = function (event) {
     }
 }
 
-// Save Figma CSS properties whenever user types
-document.getElementById('figmaCss').addEventListener('input', (e) => {
-    chrome.storage.local.set({ figmaCss: e.target.value });
+// Save Design CSS properties whenever user types
+document.getElementById('designCss').addEventListener('input', (e) => {
+    chrome.storage.local.set({ designCss: e.target.value });
 });
 
 // Step 1: Select Element logic
@@ -383,8 +383,8 @@ document.getElementById('compareBtn').onclick = () => {
         showError(locales[currentLanguage].errorSelect);
         return;
     }
-    const figmaInput = document.getElementById('figmaCss').value;
-    if (!figmaInput.trim()) {
+    const designInput = document.getElementById('designCss').value;
+    if (!designInput.trim()) {
         showError(locales[currentLanguage].errorPaste);
         return;
     }
@@ -393,7 +393,7 @@ document.getElementById('compareBtn').onclick = () => {
 
 // Clear Data
 document.getElementById('clearData').onclick = () => {
-    document.getElementById('figmaCss').value = '';
+    document.getElementById('designCss').value = '';
     document.getElementById('resultsHeader').style.display = 'none';
     document.getElementById('results').innerHTML = '';
     selectedElementCSS = null;
@@ -405,7 +405,7 @@ document.getElementById('clearData').onclick = () => {
 };
 
 /**
- * Parses Figma CSS string. Cleaning:
+ * Parses Design CSS string. Cleaning:
  * 1. Ignores lines starting with -- or //
  * 2. Only captures valid prop: value pairs
  */
@@ -415,8 +415,8 @@ function cssStringToObject(str) {
 
     lines.forEach(line => {
         line = line.trim();
-        // Ignore empty lines, comments, or CSS variables often pasted from Figma dev mode
-        // Figma dev mode sometimes outputs: /* layer name */ or --variable: #color
+        // Ignore empty lines, comments, or CSS variables often pasted from Design dev mode
+        // Design dev mode sometimes outputs: /* layer name */ or --variable: #color
         if (!line || line.startsWith('/*') || (line.startsWith('--') && !line.includes(':'))) return;
 
         if (line.includes(':')) {
@@ -430,11 +430,11 @@ function cssStringToObject(str) {
             if (commentMatch) {
                 value = commentMatch[1]; // Use the commented value
             } else {
-                // Clean up Figma comments at end of line like " /* secondary */"
+                // Clean up Design comments at end of line like " /* secondary */"
                 value = value.replace(/\/\*.*\*\//g, '').trim();
             }
 
-            // NEW: Handle Figma variables with fallbacks
+            // NEW: Handle Design variables with fallbacks
             // Check for syntax: var(--name, #fallback)
             const varMatch = value.match(/var\(--[^,]+,\s*([^)]+)\)/);
             if (varMatch) {
@@ -565,17 +565,17 @@ function displayElementCSS(siteCssObj) {
 }
 
 function compareCSS(siteCssObj) {
-    const figmaInput = document.getElementById("figmaCss").value;
-    const figmaObj = cssStringToObject(figmaInput);
-    const basePx = detectBaseFontSize(figmaInput);
+    const designInput = document.getElementById("designCss").value;
+    const designObj = cssStringToObject(designInput);
+    const basePx = detectBaseFontSize(designInput);
 
     // Check if "Compare common properties only" is enabled
     const commonPropsOnly = document.getElementById('commonPropsToggle').checked;
 
     let html = "";
-    Object.keys(figmaObj).forEach(key => {
+    Object.keys(designObj).forEach(key => {
         let siteValue = siteCssObj[key] || '';
-        let figmaValue = figmaObj[key];
+        let designValue = designObj[key];
 
         // Skip warning results if "Compare common properties only" is enabled
         if (commonPropsOnly && !siteValue) {
@@ -584,7 +584,7 @@ function compareCSS(siteCssObj) {
 
         // Normalize for comparison
         const normSite = normalizeValue(siteValue, basePx);
-        const normFigma = normalizeValue(figmaValue, basePx);
+        const normDesign = normalizeValue(designValue, basePx);
 
         let cssClass = "";
         let displaySiteValue = siteValue;
@@ -596,7 +596,7 @@ function compareCSS(siteCssObj) {
             // Not set on element -> Warning (Yellow)
             cssClass = "warning";
             displaySiteValue = '(not set)';
-        } else if (normSite === normFigma) {
+        } else if (normSite === normDesign) {
             // Match -> Match (Green)
             cssClass = "match";
         } else {
@@ -604,7 +604,7 @@ function compareCSS(siteCssObj) {
             cssClass = "diff";
         }
 
-        html += `<div class="${cssClass}"><b>${key}:</b> Figma: <code>${figmaValue}</code> &rarr; Site: <code>${displaySiteValue}</code></div>`;
+        html += `<div class="${cssClass}"><b>${key}:</b> Design: <code>${designValue}</code> &rarr; Site: <code>${displaySiteValue}</code></div>`;
     });
 
     updateResults(locales[currentLanguage].resultsTitleCompare, html);

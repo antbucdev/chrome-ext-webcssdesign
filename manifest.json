@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Figma CSS Compare",
-  "description": "Compare Figma CSS with webpage elements in a persistent side panel.",
+  "name": "Design CSS Compare",
+  "description": "Compare Design CSS with webpage elements in a persistent side panel.",
   "version": "1.1",
   "permissions": [
     "scripting",
