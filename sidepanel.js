@@ -143,26 +143,42 @@ btn.onclick = function () {
     checkIncognitoStatus();
 }
 
+// Initial setup for Incognito button click
+document.getElementById('incognitoBtn').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id });
+    window.close(); // Close panel immediately to simulate deactivation
+});
+
 function checkIncognitoStatus() {
-    chrome.extension.isAllowedIncognitoAccess((isAllowed) => {
-        const incognitoBtn = document.getElementById('incognitoBtn');
-        const texts = locales[currentLanguage];
-        if (isAllowed) {
-            incognitoBtn.textContent = texts.statusActive;
-            incognitoBtn.disabled = true;
-            incognitoBtn.style.opacity = '0.6';
-            incognitoBtn.style.cursor = 'default';
-        } else {
-            incognitoBtn.textContent = texts.btnEnable;
-            incognitoBtn.disabled = false;
-            incognitoBtn.style.opacity = '1';
-            incognitoBtn.style.cursor = 'pointer';
-            incognitoBtn.onclick = () => {
-                chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id });
-            };
-        }
-    });
+    try {
+        chrome.extension.isAllowedIncognitoAccess((isAllowed) => {
+            const incognitoBtn = document.getElementById('incognitoBtn');
+            const texts = locales[currentLanguage];
+            if (!incognitoBtn || !texts) return;
+
+            if (isAllowed) {
+                incognitoBtn.textContent = texts.statusActive;
+                incognitoBtn.disabled = true;
+                incognitoBtn.style.opacity = '0.6';
+                incognitoBtn.style.cursor = 'default';
+                incognitoBtn.style.pointerEvents = 'none';
+            } else {
+                incognitoBtn.textContent = texts.btnEnable;
+                incognitoBtn.disabled = false;
+                incognitoBtn.style.opacity = '1';
+                incognitoBtn.style.cursor = 'pointer';
+                incognitoBtn.style.pointerEvents = 'auto';
+            }
+        });
+    } catch (e) {
+        console.error("Error checking incognito status:", e);
+    }
 }
+
+// Cleanup if extension is disabled/uninstalled
+chrome.runtime.onSuspend.addListener(() => {
+    window.close();
+});
 
 span.onclick = function () {
     modal.style.display = "none";
@@ -411,55 +427,53 @@ document.getElementById('clearData').onclick = () => {
  */
 function cssStringToObject(str) {
     const obj = {};
-    const lines = str.split(';');
+    // Regex to match property: value; /* comment */
+    // It captures property name, the value (up to semicolon), and any trailing comment
+    const propertyRegex = /([\w-]+\s*:\s*([^;]+)(?:;?\s*\/\*.*?\*\/|;|$))/gi;
+    let match;
 
-    lines.forEach(line => {
-        line = line.trim();
-        // Ignore empty lines, comments, or CSS variables often pasted from Design dev mode
-        // Design dev mode sometimes outputs: /* layer name */ or --variable: #color
-        if (!line || line.startsWith('/*') || (line.startsWith('--') && !line.includes(':'))) return;
+    while ((match = propertyRegex.exec(str)) !== null) {
+        let fullMatch = match[1].trim();
+        let valuePart = match[2].trim();
 
-        if (line.includes(':')) {
-            // Split by first colon only
-            const parts = line.split(':');
-            const key = parts[0].trim();
-            let value = parts.slice(1).join(':').trim();
+        const colonIndex = fullMatch.indexOf(':');
+        const key = fullMatch.substring(0, colonIndex).trim().toLowerCase();
+        let value = valuePart;
 
-            // Check for value in comment /* 24px */ or /* 1.5rem */
-            const commentMatch = value.match(/\/\*\s*([\d\.]+(?:px|rem|em|%))\s*\*\//);
-            if (commentMatch) {
-                value = commentMatch[1]; // Use the commented value
-            } else {
-                // Clean up Design comments at end of line like " /* secondary */"
-                value = value.replace(/\/\*.*\*\//g, '').trim();
-            }
+        // Ignore CSS variables pasted from Design dev mode if they don't have a value
+        if (key.startsWith('--') && !value) continue;
 
-            // NEW: Handle Design variables with fallbacks
-            // Check for syntax: var(--name, #fallback)
-            const varMatch = value.match(/var\(--[^,]+,\s*([^)]+)\)/);
-            if (varMatch) {
-                value = varMatch[1].trim();
-            } else if (value.startsWith('--') && value.includes(',')) {
-                // Check for syntax: --name, #fallback
-                // Extract everything after the first comma
-                value = value.substring(value.indexOf(',') + 1).trim();
-            }
-
-            if (key && value) {
-                obj[key.toLowerCase()] = value;
-            }
+        // Check for value in comment /* 24px */ or /* 1.5rem */
+        // We look in the whole property line for the comment
+        const commentMatch = fullMatch.match(/\/\*\s*([\d\.]+(?:px|rem|em|%))\s*\*\//);
+        if (commentMatch) {
+            value = commentMatch[1]; // Use the commented value
         } else {
-            // Check for standalone hex code (with optional semicolon)
-            // Regex for #123, #123456, #12345678 (alpha)
-            const hexMatch = line.match(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8});?$/);
-            if (hexMatch) {
-                // If it's a raw hex code, assume it's a color
-                let val = hexMatch[0];
-                if (val.endsWith(';')) val = val.slice(0, -1);
-                obj['color'] = val;
-            }
+            // Clean up Design comments at end of value like " /* secondary */"
+            value = value.replace(/\/\*.*\*\//g, '').trim();
         }
-    });
+
+        // NEW: Handle Design variables with fallbacks
+        const varMatch = value.match(/var\(--[^,]+,\s*([^)]+)\)/);
+        if (varMatch) {
+            value = varMatch[1].trim();
+        } else if (value.startsWith('--') && value.includes(',')) {
+            value = value.substring(value.indexOf(',') + 1).trim();
+        }
+
+        if (key && value) {
+            obj[key] = value;
+        }
+    }
+
+    // Fallback for standalone hex codes (if no properties matched)
+    if (Object.keys(obj).length === 0) {
+        const hexMatch = str.match(/#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})/);
+        if (hexMatch) {
+            obj['color'] = hexMatch[0];
+        }
+    }
+
     return obj;
 }
 
@@ -470,8 +484,8 @@ function cssStringToObject(str) {
  */
 function detectBaseFontSize(str) {
     // Regex to find "line-height: <num>% /* <num>px */"
-    // Handles optional spaces, the % symbol, and optional semicolon
-    const regex = /line-height:\s*([\d\.]+)\s*%\s*;?\s*\/\*\s*([\d\.]+)px\s*\*\//i;
+    // We allow the semicolon to be anywhere or missing
+    const regex = /line-height\s*:\s*([\d\.]+)\s*%\s*;?\s*\/\*\s*([\d\.]+)px\s*\*\//i;
     const match = str.match(regex);
 
     if (match) {
@@ -550,6 +564,15 @@ function normalizeValue(value, basePx = 16) {
     // Convert rgb/rgba to hex
     if (val.startsWith('rgb')) {
         val = rgbToHex(val);
+    }
+
+    // Expand short hex codes: #000 -> #000000, #000f -> #000000ff
+    if (val.startsWith('#')) {
+        if (val.length === 4) { // #abc -> #aabbcc
+            val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
+        } else if (val.length === 5) { // #abcf -> #aabbccff
+            val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3] + val[4] + val[4];
+        }
     }
 
     // Remove spacing
