@@ -143,26 +143,42 @@ btn.onclick = function () {
     checkIncognitoStatus();
 }
 
+// Initial setup for Incognito button click
+document.getElementById('incognitoBtn').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id });
+    window.close(); // Close panel immediately to simulate deactivation
+});
+
 function checkIncognitoStatus() {
-    chrome.extension.isAllowedIncognitoAccess((isAllowed) => {
-        const incognitoBtn = document.getElementById('incognitoBtn');
-        const texts = locales[currentLanguage];
-        if (isAllowed) {
-            incognitoBtn.textContent = texts.statusActive;
-            incognitoBtn.disabled = true;
-            incognitoBtn.style.opacity = '0.6';
-            incognitoBtn.style.cursor = 'default';
-        } else {
-            incognitoBtn.textContent = texts.btnEnable;
-            incognitoBtn.disabled = false;
-            incognitoBtn.style.opacity = '1';
-            incognitoBtn.style.cursor = 'pointer';
-            incognitoBtn.onclick = () => {
-                chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id });
-            };
-        }
-    });
+    try {
+        chrome.extension.isAllowedIncognitoAccess((isAllowed) => {
+            const incognitoBtn = document.getElementById('incognitoBtn');
+            const texts = locales[currentLanguage];
+            if (!incognitoBtn || !texts) return;
+
+            if (isAllowed) {
+                incognitoBtn.textContent = texts.statusActive;
+                incognitoBtn.disabled = true;
+                incognitoBtn.style.opacity = '0.6';
+                incognitoBtn.style.cursor = 'default';
+                incognitoBtn.style.pointerEvents = 'none';
+            } else {
+                incognitoBtn.textContent = texts.btnEnable;
+                incognitoBtn.disabled = false;
+                incognitoBtn.style.opacity = '1';
+                incognitoBtn.style.cursor = 'pointer';
+                incognitoBtn.style.pointerEvents = 'auto';
+            }
+        });
+    } catch (e) {
+        console.error("Error checking incognito status:", e);
+    }
 }
+
+// Cleanup if extension is disabled/uninstalled
+chrome.runtime.onSuspend.addListener(() => {
+    window.close();
+});
 
 span.onclick = function () {
     modal.style.display = "none";
