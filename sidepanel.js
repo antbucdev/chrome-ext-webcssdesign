@@ -646,6 +646,16 @@ function updateResults(title, content) {
     });
 }
 
+// Display an error/warning message in the results area
+function showError(msg) {
+    const title = locales[currentLanguage] && locales[currentLanguage].resultsTitleError ? locales[currentLanguage].resultsTitleError : '⚠️ Error';
+    document.getElementById('resultsHeader').style.display = 'flex';
+    document.getElementById('resultsTitle').textContent = title;
+    const content = `<div class="warning">${msg}</div>`;
+    document.getElementById('results').innerHTML = content;
+    chrome.storage.local.set({ resultsTitle: title, comparisonResults: content });
+}
+
 // Result Filtering Logic
 const filterToggle = document.getElementById('filterToggle');
 const resultsContainer = document.getElementById('results');
@@ -773,4 +783,5 @@ function saveResults() {
     chrome.storage.local.set({ comparisonResults: html });
 }
 
-// Store for selected element CSS
+// Store for selected element CSS
+
