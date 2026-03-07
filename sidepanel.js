@@ -246,14 +246,46 @@ document.getElementById('selectElement').onclick = async () => {
 
                     let currentHovered = null;
 
+                    /**
+                     * Helper: Get the actual target element, accounting for Shadow DOM
+                     * Uses composedPath() to traverse through shadow boundaries
+                     * Returns the deepest non-tooltip element
+                     */
+                    function getActualTarget(event) {
+                        // Use composedPath() to get elements through shadow DOM boundaries
+                        const path = event.composedPath ? event.composedPath() : [event.target];
+                        
+                        // Find first element that isn't the tooltip or document
+                        for (let el of path) {
+                            if (el.nodeType === Node.ELEMENT_NODE && el.id !== 'css-compare-tooltip' && el !== document) {
+                                return el;
+                            }
+                        }
+                        return event.target;
+                    }
+
+                    /**
+                     * Helper: Check if element can be highlighted (has valid tagName)
+                     */
+                    function isValidElement(el) {
+                        return el && el.nodeType === Node.ELEMENT_NODE && el.tagName && el.tagName !== 'HTML' && el.tagName !== 'BODY';
+                    }
+
                     function isActionable(el) {
+                        if (!isValidElement(el)) return false;
+                        
                         const tag = el.tagName.toLowerCase();
                         const actionableTags = ['a', 'button', 'input', 'select', 'textarea', 'label'];
                         if (actionableTags.includes(tag)) return true;
 
-                        // Check for cursor: pointer
+                        // Custom elements with hyphens (like dt-button) can be interactive
+                        // Check for cursor: pointer or role attribute
                         const computed = window.getComputedStyle(el);
-                        return computed.cursor === 'pointer';
+                        const role = el.getAttribute('role');
+                        const isClickable = el.getAttribute('onclick') !== null || 
+                                          el.getAttribute('data-clickable') !== null;
+                        
+                        return computed.cursor === 'pointer' || role === 'button' || role === 'link' || isClickable;
                     }
 
                     // Helper to clear hover classes
@@ -267,6 +299,8 @@ document.getElementById('selectElement').onclick = async () => {
                     }
 
                     function updateTooltip(el) {
+                        if (!isValidElement(el)) return;
+
                         const tag = el.tagName.toLowerCase();
                         const id = el.id ? '#' + el.id : '';
                         const classes = Array.from(el.classList)
@@ -278,8 +312,14 @@ document.getElementById('selectElement').onclick = async () => {
                         const width = Math.round(rect.width * 100) / 100;
                         const height = Math.round(rect.height * 100) / 100;
 
+                        // Add indicator for custom elements
+                        let tagDisplay = tag;
+                        if (tag.includes('-')) {
+                            tagDisplay = tag + ' <span style="color: #a8d5ba;">[custom]</span>';
+                        }
+
                         tooltip.innerHTML = `
-                            <span class="tag">${tag}</span><span class="id">${id}</span><span class="class">${classes}</span>
+                            <span class="tag">${tagDisplay}</span><span class="id">${id}</span><span class="class">${classes}</span>
                             <span class="dim">${width} x ${height}</span>
                         `;
 
@@ -305,7 +345,11 @@ document.getElementById('selectElement').onclick = async () => {
                         // Clear previous hover
                         clearHover();
 
-                        const el = e.target;
+                        // Get actual element through shadow DOM
+                        const el = getActualTarget(e);
+                        
+                        if (!isValidElement(el)) return;
+                        
                         currentHovered = el;
 
                         if (isActionable(el)) {
@@ -320,7 +364,10 @@ document.getElementById('selectElement').onclick = async () => {
                     function onMouseOut(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        const el = e.target;
+                        const el = getActualTarget(e);
+                        
+                        if (!isValidElement(el)) return;
+                        
                         el.classList.remove('css-compare-hover');
                         el.classList.remove('css-compare-hover-actionable');
                         tooltip.style.display = 'none';
@@ -330,8 +377,16 @@ document.getElementById('selectElement').onclick = async () => {
                         e.preventDefault();
                         e.stopPropagation();
 
-                        // Use the current hovered element or target
-                        const el = currentHovered || e.target;
+                        // Use the current hovered element or get from composed path
+                        let el = currentHovered;
+                        if (!isValidElement(el)) {
+                            el = getActualTarget(e);
+                        }
+                        
+                        if (!isValidElement(el)) {
+                            console.warn('Could not find valid element to select');
+                            return;
+                        }
 
                         // Clear hover effects
                         clearHover();
@@ -413,6 +468,9 @@ document.getElementById('selectElement').onclick = async () => {
                         // DEBUG: Log extracted styles to console for troubleshooting
                         console.group('🎯 CSS Extraction Debug Info');
                         console.log('Element:', el);
+                        console.log('Element tag:', el.tagName.toLowerCase());
+                        console.log('Is custom element (contains hyphen):', el.tagName.includes('-'));
+                        console.log('In Shadow DOM:', el.getRootNode() !== document);
                         console.log('Pseudo-element mode:', pseudoType);
                         console.log('Extracted CSS object:', cssObj);
                         console.log('All computed styles:', computed);
