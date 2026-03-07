@@ -345,8 +345,46 @@ document.getElementById('selectElement').onclick = async () => {
                         document.removeEventListener('mouseout', onMouseOut, true);
                         tooltip.remove();
 
-                        // Get computed styles
-                        const computed = window.getComputedStyle(el);
+                        // Get computed styles (includes inherited properties from parents)
+                        // Try to get pseudo-element styles if available (::before or ::after)
+                        // IMPORTANT: Always try pseudo-element first - don't check content
+                        let computed = null;
+                        let pseudoType = null;
+                        
+                        try {
+                            // Try ::before first
+                            const beforeStyles = window.getComputedStyle(el, '::before');
+                            // Try ::after as fallback
+                            const afterStyles = window.getComputedStyle(el, '::after');
+                            
+                            // Use whichever pseudo-element has actual content
+                            const beforeContent = beforeStyles.getPropertyValue('content');
+                            const afterContent = afterStyles.getPropertyValue('content');
+                            
+                            if (beforeContent && beforeContent !== 'none' && beforeContent !== '') {
+                                computed = beforeStyles;
+                                pseudoType = '::before';
+                            } else if (afterContent && afterContent !== 'none' && afterContent !== '') {
+                                computed = afterStyles;
+                                pseudoType = '::after';
+                            } else {
+                                // Even without content, use ::before if it has visual properties (e.g., background)
+                                // Check if ::before has non-default background or color
+                                const beforeBg = beforeStyles.getPropertyValue('background-color');
+                                if (beforeBg && beforeBg !== 'rgba(0, 0, 0, 0)' && beforeBg !== 'transparent') {
+                                    computed = beforeStyles;
+                                    pseudoType = '::before';
+                                } else {
+                                    computed = window.getComputedStyle(el);
+                                    pseudoType = 'element';
+                                }
+                            }
+                        } catch (e) {
+                            // Fallback to element itself if pseudo-element access fails
+                            computed = window.getComputedStyle(el);
+                            pseudoType = 'element';
+                        }
+                        
                         const cssObj = {};
 
                         // Common properties to extract
@@ -359,22 +397,39 @@ document.getElementById('selectElement').onclick = async () => {
                             'border', 'border-width', 'border-style', 'border-color', 'border-radius',
                             'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
                             'box-shadow', 'cursor', 'position', 'top', 'right', 'bottom', 'left',
-                            'z-index', 'opacity', 'overflow', 'overflow-x', 'overflow-y', 'letter-spacing'
+                            'z-index', 'opacity', 'overflow', 'overflow-x', 'overflow-y', 'letter-spacing',
+                            'filter', 'background-image', 'text-shadow', 'clip-path', 'mask'
                         ];
 
                         commonProps.forEach(key => {
                             const value = computed.getPropertyValue(key);
-                            if (value && value !== 'none' && value !== 'auto' && value !== 'normal') {
+                            // Include values even if they are 'auto' or other defaults
+                            // getComputedStyle already includes inherited values from parent elements
+                            if (value && value !== 'none') {
                                 cssObj[key] = value;
                             }
                         });
+
+                        // DEBUG: Log extracted styles to console for troubleshooting
+                        console.group('🎯 CSS Extraction Debug Info');
+                        console.log('Element:', el);
+                        console.log('Pseudo-element mode:', pseudoType);
+                        console.log('Extracted CSS object:', cssObj);
+                        console.log('All computed styles:', computed);
+                        console.groupEnd();
 
                         setTimeout(() => {
                             el.classList.remove('css-compare-highlight');
                             style.remove();
                         }, 1500);
 
-                        resolve(cssObj);
+                        // Return both the extracted CSS object and a small debug summary
+                        const debug = {
+                            pseudoType: typeof pseudoType !== 'undefined' ? pseudoType : null,
+                            extractedKeys: Object.keys(cssObj)
+                        };
+
+                        resolve({ cssObj: cssObj, debug: debug });
                     }
 
                     // Use capture to ensuring we get the event first
@@ -385,9 +440,23 @@ document.getElementById('selectElement').onclick = async () => {
             }
         }, (results) => {
             if (results && results[0] && results[0].result) {
-                selectedElementCSS = results[0].result;
-                chrome.storage.local.set({ selectedElementCSS: selectedElementCSS });
-                displayElementCSS(selectedElementCSS);
+                const res = results[0].result;
+                // If the injected script returned an object with cssObj + debug
+                if (res && res.cssObj) {
+                    selectedElementCSS = res.cssObj;
+                    // Save debug info for inspection
+                    try {
+                        chrome.storage.local.set({ selectedElementCSS: selectedElementCSS, lastExtractDebug: res.debug || null });
+                    } catch (e) {
+                        // ignore storage errors
+                    }
+                    displayElementCSS(selectedElementCSS);
+                } else {
+                    // Backwards compatibility: older result was plain cssObj
+                    selectedElementCSS = res;
+                    chrome.storage.local.set({ selectedElementCSS: selectedElementCSS });
+                    displayElementCSS(selectedElementCSS);
+                }
             }
         });
     });
@@ -467,10 +536,18 @@ function cssStringToObject(str) {
     }
 
     // Fallback for standalone hex codes (if no properties matched)
+    // BUG FIX: Search specifically for 'color:' property, not just any hex code
     if (Object.keys(obj).length === 0) {
-        const hexMatch = str.match(/#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})/);
-        if (hexMatch) {
-            obj['color'] = hexMatch[0];
+        // Look for 'color: <hex>' pattern specifically
+        const colorHexMatch = str.match(/color\s*:\s*(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8})/i);
+        if (colorHexMatch) {
+            obj['color'] = colorHexMatch[1];
+        } else {
+            // Generic fallback: match any hex if no color property found
+            const hexMatch = str.match(/#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})/);
+            if (hexMatch) {
+                obj['color'] = hexMatch[0];
+            }
         }
     }
 
@@ -616,9 +693,13 @@ function compareCSS(siteCssObj) {
         }
 
         if (!siteValue) {
-            // Not set on element -> Warning (Yellow)
+            // Property not found in selected element or its computed styles
+            // This could be because:
+            // 1. Property is not defined on element or parents
+            // 2. Property is a non-standard/design-specific CSS property
+            // Display as warning (beige/yellow) color
             cssClass = "warning";
-            displaySiteValue = '(not set)';
+            displaySiteValue = '(not defined)';
         } else if (normSite === normDesign) {
             // Match -> Match (Green)
             cssClass = "match";
