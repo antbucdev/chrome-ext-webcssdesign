@@ -4,7 +4,7 @@ let currentLanguage = 'en';
 
 // Restore saved state when popup opens
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.storage.local.get(['designCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly'], (data) => {
+    chrome.storage.local.get(['designCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly', 'allFrames'], (data) => {
         // Language Setup
         if (data.language) {
             currentLanguage = data.language;
@@ -71,6 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.commonPropsOnly) {
             document.getElementById('commonPropsToggle').checked = true;
         }
+
+        // Restore All Frames toggle
+        if (data.allFrames) {
+            document.getElementById('allFramesToggle').checked = true;
+        }
     });
 });
 
@@ -132,6 +137,24 @@ const commonPropsToggle = document.getElementById('commonPropsToggle');
 commonPropsToggle.addEventListener('change', function (e) {
     chrome.storage.local.set({ commonPropsOnly: e.target.checked });
 });
+
+// All Frames Toggle
+const allFramesToggle = document.getElementById('allFramesToggle');
+allFramesToggle.addEventListener('change', function (e) {
+    chrome.storage.local.set({ allFrames: e.target.checked });
+    // Update the content script injections dynamically
+    updateContentScriptAllFrames(e.target.checked);
+});
+
+function updateContentScriptAllFrames(enabled) {
+    // This communicates to the background script or content scripts that all_frames setting has changed
+    chrome.runtime.sendMessage({
+        type: 'UPDATE_ALL_FRAMES',
+        enabled: enabled
+    }).catch(() => {
+        // Message port closed or background script not available
+    });
+}
 
 // Settings Modal Logic
 const modal = document.getElementById("settingsModal");
@@ -202,307 +225,318 @@ document.getElementById('selectElement').onclick = async () => {
             target: { tabId: tab.id },
             func: () => {
                 return new Promise((resolve) => {
-                    const style = document.createElement('style');
-                    style.innerHTML = `
-                        .css-compare-highlight { 
-                            outline: 2px solid #0057b7 !important; 
-                            z-index: 10000 !important;
-                        }
-                        .css-compare-hover {
-                            outline: 2px dashed #4a90e2 !important;
-                            cursor: default !important;
-                            z-index: 10000 !important;
-                        }
-                        .css-compare-hover-actionable {
-                            outline: 2px solid #ff9900 !important;
-                            cursor: default !important;
-                            z-index: 10000 !important;
-                        }
-                        #css-compare-tooltip {
-                            position: fixed;
-                            z-index: 2147483647;
-                            background: rgba(0, 0, 0, 0.9);
-                            color: white;
-                            padding: 4px 8px;
-                            border-radius: 4px;
-                            font-family: Consolas, Monaco, monospace;
-                            font-size: 12px;
-                            pointer-events: none;
-                            display: none;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-                            white-space: nowrap;
-                        }
-                        #css-compare-tooltip .tag { color: #f28b82; font-weight: bold; }
-                        #css-compare-tooltip .id { color: #fbbc04; }
-                        #css-compare-tooltip .class { color: #8ab4f8; }
-                        #css-compare-tooltip .dim { color: #bdc1c6; margin-left: 5px; }
-                    `;
-                    document.head.appendChild(style);
-
-                    // Create tooltip
-                    const tooltip = document.createElement('div');
-                    tooltip.id = 'css-compare-tooltip';
-                    document.body.appendChild(tooltip);
-
-                    let currentHovered = null;
-
                     /**
-                     * Helper: Get the actual target element, accounting for Shadow DOM
-                     * Uses composedPath() to traverse through shadow boundaries
-                     * Returns the deepest non-tooltip element
+                     * Helper function to setup element selection mode on a given document context
+                     * This enables selecting elements including those in Shadow DOM and iframes
                      */
-                    function getActualTarget(event) {
-                        // Use composedPath() to get elements through shadow DOM boundaries
-                        const path = event.composedPath ? event.composedPath() : [event.target];
-                        
-                        // Find first element that isn't the tooltip or document
-                        for (let el of path) {
-                            if (el.nodeType === Node.ELEMENT_NODE && el.id !== 'css-compare-tooltip' && el !== document) {
-                                return el;
+                    function setupElementSelectionMode(doc, resolveCallback) {
+                        const style = doc.createElement('style');
+                        style.innerHTML = `
+                            .css-compare-highlight { 
+                                outline: 2px solid #0057b7 !important; 
+                                z-index: 10000 !important;
                             }
-                        }
-                        return event.target;
-                    }
-
-                    /**
-                     * Helper: Check if element can be highlighted (has valid tagName)
-                     */
-                    function isValidElement(el) {
-                        return el && el.nodeType === Node.ELEMENT_NODE && el.tagName && el.tagName !== 'HTML' && el.tagName !== 'BODY';
-                    }
-
-                    function isActionable(el) {
-                        if (!isValidElement(el)) return false;
-                        
-                        const tag = el.tagName.toLowerCase();
-                        const actionableTags = ['a', 'button', 'input', 'select', 'textarea', 'label'];
-                        if (actionableTags.includes(tag)) return true;
-
-                        // Custom elements with hyphens (like dt-button) can be interactive
-                        // Check for cursor: pointer or role attribute
-                        const computed = window.getComputedStyle(el);
-                        const role = el.getAttribute('role');
-                        const isClickable = el.getAttribute('onclick') !== null || 
-                                          el.getAttribute('data-clickable') !== null;
-                        
-                        return computed.cursor === 'pointer' || role === 'button' || role === 'link' || isClickable;
-                    }
-
-                    // Helper to clear hover classes
-                    function clearHover() {
-                        const hovered = document.querySelectorAll('.css-compare-hover, .css-compare-hover-actionable');
-                        hovered.forEach(el => {
-                            el.classList.remove('css-compare-hover');
-                            el.classList.remove('css-compare-hover-actionable');
-                        });
-                        tooltip.style.display = 'none';
-                    }
-
-                    function updateTooltip(el) {
-                        if (!isValidElement(el)) return;
-
-                        const tag = el.tagName.toLowerCase();
-                        const id = el.id ? '#' + el.id : '';
-                        const classes = Array.from(el.classList)
-                            .filter(c => !c.startsWith('css-compare-'))
-                            .map(c => '.' + c)
-                            .join('');
-
-                        const rect = el.getBoundingClientRect();
-                        const width = Math.round(rect.width * 100) / 100;
-                        const height = Math.round(rect.height * 100) / 100;
-
-                        // Add indicator for custom elements
-                        let tagDisplay = tag;
-                        if (tag.includes('-')) {
-                            tagDisplay = tag + ' <span style="color: #a8d5ba;">[custom]</span>';
-                        }
-
-                        tooltip.innerHTML = `
-                            <span class="tag">${tagDisplay}</span><span class="id">${id}</span><span class="class">${classes}</span>
-                            <span class="dim">${width} x ${height}</span>
+                            .css-compare-hover {
+                                outline: 2px dashed #4a90e2 !important;
+                                cursor: default !important;
+                                z-index: 10000 !important;
+                            }
+                            .css-compare-hover-actionable {
+                                outline: 2px solid #ff9900 !important;
+                                cursor: default !important;
+                                z-index: 10000 !important;
+                            }
+                            #css-compare-tooltip {
+                                position: fixed;
+                                z-index: 2147483647;
+                                background: rgba(0, 0, 0, 0.9);
+                                color: white;
+                                padding: 4px 8px;
+                                border-radius: 4px;
+                                font-family: Consolas, Monaco, monospace;
+                                font-size: 12px;
+                                pointer-events: none;
+                                display: none;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                                white-space: nowrap;
+                            }
+                            #css-compare-tooltip .tag { color: #f28b82; font-weight: bold; }
+                            #css-compare-tooltip .id { color: #fbbc04; }
+                            #css-compare-tooltip .class { color: #8ab4f8; }
+                            #css-compare-tooltip .dim { color: #bdc1c6; margin-left: 5px; }
                         `;
+                        doc.head.appendChild(style);
 
-                        tooltip.style.display = 'block';
+                        // Create tooltip in the appropriate context
+                        const tooltip = doc.createElement('div');
+                        tooltip.id = 'css-compare-tooltip';
+                        (doc.body || doc.documentElement).appendChild(tooltip);
 
-                        // Position tooltip
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        let top = rect.top - tooltipRect.height - 5;
-                        let left = rect.left;
+                        let currentHovered = null;
 
-                        // Keep within viewport
-                        if (top < 0) top = rect.bottom + 5;
-                        if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
-                        if (left < 0) left = 5;
-
-                        tooltip.style.top = top + 'px';
-                        tooltip.style.left = left + 'px';
-                    }
-
-                    function onMouseOver(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Clear previous hover
-                        clearHover();
-
-                        // Get actual element through shadow DOM
-                        const el = getActualTarget(e);
-                        
-                        if (!isValidElement(el)) return;
-                        
-                        currentHovered = el;
-
-                        if (isActionable(el)) {
-                            el.classList.add('css-compare-hover-actionable');
-                        } else {
-                            el.classList.add('css-compare-hover');
-                        }
-
-                        updateTooltip(el);
-                    }
-
-                    function onMouseOut(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const el = getActualTarget(e);
-                        
-                        if (!isValidElement(el)) return;
-                        
-                        el.classList.remove('css-compare-hover');
-                        el.classList.remove('css-compare-hover-actionable');
-                        tooltip.style.display = 'none';
-                    }
-
-                    function onClick(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        // Use the current hovered element or get from composed path
-                        let el = currentHovered;
-                        if (!isValidElement(el)) {
-                            el = getActualTarget(e);
-                        }
-                        
-                        if (!isValidElement(el)) {
-                            console.warn('Could not find valid element to select');
-                            return;
-                        }
-
-                        // Clear hover effects
-                        clearHover();
-
-                        // Apply final highlight
-                        el.classList.add('css-compare-highlight');
-
-                        // Cleanup listeners and elements
-                        document.removeEventListener('click', onClick, true);
-                        document.removeEventListener('mouseover', onMouseOver, true);
-                        document.removeEventListener('mouseout', onMouseOut, true);
-                        tooltip.remove();
-
-                        // Get computed styles (includes inherited properties from parents)
-                        // Try to get pseudo-element styles if available (::before or ::after)
-                        // IMPORTANT: Always try pseudo-element first - don't check content
-                        let computed = null;
-                        let pseudoType = null;
-                        
-                        try {
-                            // Try ::before first
-                            const beforeStyles = window.getComputedStyle(el, '::before');
-                            // Try ::after as fallback
-                            const afterStyles = window.getComputedStyle(el, '::after');
-                            
-                            // Use whichever pseudo-element has actual content
-                            const beforeContent = beforeStyles.getPropertyValue('content');
-                            const afterContent = afterStyles.getPropertyValue('content');
-                            
-                            if (beforeContent && beforeContent !== 'none' && beforeContent !== '') {
-                                computed = beforeStyles;
-                                pseudoType = '::before';
-                            } else if (afterContent && afterContent !== 'none' && afterContent !== '') {
-                                computed = afterStyles;
-                                pseudoType = '::after';
-                            } else {
-                                // Even without content, use ::before if it has visual properties (e.g., background)
-                                // Check if ::before has non-default background or color
-                                const beforeBg = beforeStyles.getPropertyValue('background-color');
-                                if (beforeBg && beforeBg !== 'rgba(0, 0, 0, 0)' && beforeBg !== 'transparent') {
-                                    computed = beforeStyles;
-                                    pseudoType = '::before';
-                                } else {
-                                    computed = window.getComputedStyle(el);
-                                    pseudoType = 'element';
+                        /**
+                         * Helper: Get the actual target element, accounting for Shadow DOM
+                         * Uses composedPath() to traverse through shadow boundaries
+                         * Returns the deepest non-tooltip element
+                         */
+                        function getActualTarget(event) {
+                            const path = event.composedPath ? event.composedPath() : [event.target];
+                            for (let el of path) {
+                                if (el.nodeType === Node.ELEMENT_NODE && el.id !== 'css-compare-tooltip' && el !== doc) {
+                                    return el;
                                 }
                             }
-                        } catch (e) {
-                            // Fallback to element itself if pseudo-element access fails
-                            computed = window.getComputedStyle(el);
-                            pseudoType = 'element';
+                            return event.target;
                         }
-                        
-                        const cssObj = {};
 
-                        // Common properties to extract
-                        const commonProps = [
-                            'display', 'flex-direction', 'align-items', 'justify-content',
-                            'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-                            'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-                            'gap', 'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
-                            'background-color', 'background', 'color',
-                            'border', 'border-width', 'border-style', 'border-color', 'border-radius',
-                            'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
-                            'box-shadow', 'cursor', 'position', 'top', 'right', 'bottom', 'left',
-                            'z-index', 'opacity', 'overflow', 'overflow-x', 'overflow-y', 'letter-spacing',
-                            'filter', 'background-image', 'text-shadow', 'clip-path', 'mask'
-                        ];
+                        /**
+                         * Helper: Check if element can be highlighted (has valid tagName)
+                         */
+                        function isValidElement(el) {
+                            return el && el.nodeType === Node.ELEMENT_NODE && el.tagName && el.tagName !== 'HTML' && el.tagName !== 'BODY';
+                        }
 
-                        commonProps.forEach(key => {
-                            const value = computed.getPropertyValue(key);
-                            // Include values even if they are 'auto' or other defaults
-                            // getComputedStyle already includes inherited values from parent elements
-                            if (value && value !== 'none') {
-                                cssObj[key] = value;
+                        function isActionable(el) {
+                            if (!isValidElement(el)) return false;
+                            
+                            const tag = el.tagName.toLowerCase();
+                            const actionableTags = ['a', 'button', 'input', 'select', 'textarea', 'label'];
+                            if (actionableTags.includes(tag)) return true;
+
+                            const computed = window.getComputedStyle(el);
+                            const role = el.getAttribute('role');
+                            const isClickable = el.getAttribute('onclick') !== null || 
+                                              el.getAttribute('data-clickable') !== null;
+                            
+                            return computed.cursor === 'pointer' || role === 'button' || role === 'link' || isClickable;
+                        }
+
+                        // Helper to clear hover classes
+                        function clearHover() {
+                            const hovered = doc.querySelectorAll('.css-compare-hover, .css-compare-hover-actionable');
+                            hovered.forEach(el => {
+                                el.classList.remove('css-compare-hover');
+                                el.classList.remove('css-compare-hover-actionable');
+                            });
+                            tooltip.style.display = 'none';
+                        }
+
+                        function updateTooltip(el) {
+                            if (!isValidElement(el)) return;
+
+                            const tag = el.tagName.toLowerCase();
+                            const id = el.id ? '#' + el.id : '';
+                            const classes = Array.from(el.classList)
+                                .filter(c => !c.startsWith('css-compare-'))
+                                .map(c => '.' + c)
+                                .join('');
+
+                            const rect = el.getBoundingClientRect();
+                            const width = Math.round(rect.width * 100) / 100;
+                            const height = Math.round(rect.height * 100) / 100;
+
+                            // Add indicators for custom elements and iframe elements
+                            let tagDisplay = tag;
+                            let indicators = [];
+                            if (tag.includes('-')) {
+                                indicators.push('<span style="color: #a8d5ba;">[custom]</span>');
                             }
-                        });
+                            if (doc !== window.document) {
+                                indicators.push('<span style="color: #f8b500;">[iframe]</span>');
+                            }
+                            if (indicators.length > 0) {
+                                tagDisplay = tag + ' ' + indicators.join(' ');
+                            }
 
-                        // DEBUG: Log extracted styles to console for troubleshooting
-                        console.group('🎯 CSS Extraction Debug Info');
-                        console.log('Element:', el);
-                        console.log('Element tag:', el.tagName.toLowerCase());
-                        console.log('Is custom element (contains hyphen):', el.tagName.includes('-'));
-                        console.log('In Shadow DOM:', el.getRootNode() !== document);
-                        console.log('Pseudo-element mode:', pseudoType);
-                        console.log('Extracted CSS object:', cssObj);
-                        console.log('All computed styles:', computed);
-                        console.groupEnd();
+                            tooltip.innerHTML = `
+                                <span class="tag">${tagDisplay}</span><span class="id">${id}</span><span class="class">${classes}</span>
+                                <span class="dim">${width} x ${height}</span>
+                            `;
 
-                        setTimeout(() => {
-                            el.classList.remove('css-compare-highlight');
-                            style.remove();
-                        }, 1500);
+                            tooltip.style.display = 'block';
 
-                        // Return both the extracted CSS object and a small debug summary
-                        const debug = {
-                            pseudoType: typeof pseudoType !== 'undefined' ? pseudoType : null,
-                            extractedKeys: Object.keys(cssObj)
-                        };
+                            // Position tooltip
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            let top = rect.top - tooltipRect.height - 5;
+                            let left = rect.left;
 
-                        resolve({ cssObj: cssObj, debug: debug });
+                            // Keep within viewport
+                            if (top < 0) top = rect.bottom + 5;
+                            if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
+                            if (left < 0) left = 5;
+
+                            tooltip.style.top = top + 'px';
+                            tooltip.style.left = left + 'px';
+                        }
+
+                        function onMouseOver(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            clearHover();
+
+                            const el = getActualTarget(e);
+                            
+                            if (!isValidElement(el)) return;
+                            
+                            currentHovered = el;
+
+                            if (isActionable(el)) {
+                                el.classList.add('css-compare-hover-actionable');
+                            } else {
+                                el.classList.add('css-compare-hover');
+                            }
+
+                            updateTooltip(el);
+                        }
+
+                        function onMouseOut(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const el = getActualTarget(e);
+                            
+                            if (!isValidElement(el)) return;
+                            
+                            el.classList.remove('css-compare-hover');
+                            el.classList.remove('css-compare-hover-actionable');
+                            tooltip.style.display = 'none';
+                        }
+
+                        function onClick(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            let el = currentHovered;
+                            if (!isValidElement(el)) {
+                                el = getActualTarget(e);
+                            }
+                            
+                            if (!isValidElement(el)) {
+                                console.warn('Could not find valid element to select');
+                                return;
+                            }
+
+                            clearHover();
+                            el.classList.add('css-compare-highlight');
+                            doc.removeEventListener('click', onClick, true);
+                            doc.removeEventListener('mouseover', onMouseOver, true);
+                            doc.removeEventListener('mouseout', onMouseOut, true);
+                            tooltip.remove();
+
+                            // Extract CSS
+                            let computed = null;
+                            let pseudoType = null;
+                            
+                            try {
+                                const beforeStyles = window.getComputedStyle(el, '::before');
+                                const afterStyles = window.getComputedStyle(el, '::after');
+                                
+                                const beforeContent = beforeStyles.getPropertyValue('content');
+                                const afterContent = afterStyles.getPropertyValue('content');
+                                
+                                if (beforeContent && beforeContent !== 'none' && beforeContent !== '') {
+                                    computed = beforeStyles;
+                                    pseudoType = '::before';
+                                } else if (afterContent && afterContent !== 'none' && afterContent !== '') {
+                                    computed = afterStyles;
+                                    pseudoType = '::after';
+                                } else {
+                                    const beforeBg = beforeStyles.getPropertyValue('background-color');
+                                    if (beforeBg && beforeBg !== 'rgba(0, 0, 0, 0)' && beforeBg !== 'transparent') {
+                                        computed = beforeStyles;
+                                        pseudoType = '::before';
+                                    } else {
+                                        computed = window.getComputedStyle(el);
+                                        pseudoType = 'element';
+                                    }
+                                }
+                            } catch (e) {
+                                computed = window.getComputedStyle(el);
+                                pseudoType = 'element';
+                            }
+                            
+                            const cssObj = {};
+                            const commonProps = [
+                                'display', 'flex-direction', 'align-items', 'justify-content',
+                                'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+                                'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+                                'gap', 'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+                                'background-color', 'background', 'color',
+                                'border', 'border-width', 'border-style', 'border-color', 'border-radius',
+                                'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
+                                'box-shadow', 'cursor', 'position', 'top', 'right', 'bottom', 'left',
+                                'z-index', 'opacity', 'overflow', 'overflow-x', 'overflow-y', 'letter-spacing',
+                                'filter', 'background-image', 'text-shadow', 'clip-path', 'mask'
+                            ];
+
+                            commonProps.forEach(key => {
+                                const value = computed.getPropertyValue(key);
+                                if (value && value !== 'none') {
+                                    cssObj[key] = value;
+                                }
+                            });
+
+                            // DEBUG: Log extracted styles to console for troubleshooting
+                            console.group('🎯 CSS Extraction Debug Info');
+                            console.log('Element:', el);
+                            console.log('Element tag:', el.tagName.toLowerCase());
+                            console.log('Is custom element (contains hyphen):', el.tagName.includes('-'));
+                            console.log('In Shadow DOM:', el.getRootNode() !== doc);
+                            console.log('In iframe:', doc !== window.document);
+                            console.log('Pseudo-element mode:', pseudoType);
+                            console.log('Extracted CSS object:', cssObj);
+                            console.log('All computed styles:', computed);
+                            console.groupEnd();
+
+                            setTimeout(() => {
+                                el.classList.remove('css-compare-highlight');
+                                style.remove();
+                            }, 1500);
+
+                            const debug = {
+                                pseudoType: typeof pseudoType !== 'undefined' ? pseudoType : null,
+                                extractedKeys: Object.keys(cssObj),
+                                inIframe: doc !== window.document
+                            };
+
+                            resolveCallback({ cssObj: cssObj, debug: debug });
+                        }
+
+                        doc.addEventListener('mouseover', onMouseOver, true);
+                        doc.addEventListener('mouseout', onMouseOut, true);
+                        doc.addEventListener('click', onClick, true);
                     }
 
-                    // Use capture to ensuring we get the event first
-                    document.addEventListener('mouseover', onMouseOver, true);
-                    document.addEventListener('mouseout', onMouseOut, true);
-                    document.addEventListener('click', onClick, true);
+                    // Setup selection mode on main document
+                    setupElementSelectionMode(document, resolve);
+
+                    // Find and setup all accessible iframes (same-origin only)
+                    try {
+                        const iframes = document.querySelectorAll('iframe');
+                        
+                        iframes.forEach(iframe => {
+                            try {
+                                // Check if iframe is accessible (same-origin)
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (iframeDoc) {
+                                    // Setup selection mode in this iframe's document
+                                    setupElementSelectionMode(iframeDoc, resolve);
+                                    console.log('✓ CSS Compare: Setup selection in iframe');
+                                }
+                            } catch (e) {
+                                // Cross-origin iframe - cannot access
+                                console.log('✗ CSS Compare: Cannot access iframe (cross-origin or sandboxed)');
+                            }
+                        });
+                    } catch (e) {
+                        console.log('CSS Compare: Error scanning iframes:', e);
+                    }
                 });
             }
         }, (results) => {
             if (results && results[0] && results[0].result) {
                 const res = results[0].result;
-                // If the injected script returned an object with cssObj + debug
                 if (res && res.cssObj) {
                     selectedElementCSS = res.cssObj;
-                    // Save debug info for inspection
                     try {
                         chrome.storage.local.set({ selectedElementCSS: selectedElementCSS, lastExtractDebug: res.debug || null });
                     } catch (e) {
@@ -510,7 +544,6 @@ document.getElementById('selectElement').onclick = async () => {
                     }
                     displayElementCSS(selectedElementCSS);
                 } else {
-                    // Backwards compatibility: older result was plain cssObj
                     selectedElementCSS = res;
                     chrome.storage.local.set({ selectedElementCSS: selectedElementCSS });
                     displayElementCSS(selectedElementCSS);
