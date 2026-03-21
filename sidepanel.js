@@ -1,10 +1,11 @@
 // Store for selected element CSS
 let selectedElementCSS = null;
+let selectedElementDebug = {};
 let currentLanguage = 'en';
 
 // Restore saved state when popup opens
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.storage.local.get(['designCss', 'selectedElementCSS', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly', 'allFrames'], (data) => {
+    chrome.storage.local.get(['designCss', 'selectedElementCSS', 'lastExtractDebug', 'comparisonResults', 'resultsTitle', 'darkMode', 'language', 'commonPropsOnly', 'allFrames'], (data) => {
         // Language Setup
         if (data.language) {
             currentLanguage = data.language;
@@ -43,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (data.selectedElementCSS) {
             selectedElementCSS = data.selectedElementCSS;
+        }
+        if (data.lastExtractDebug) {
+            selectedElementDebug = data.lastExtractDebug;
         }
 
         // Restore results view
@@ -455,6 +459,28 @@ document.getElementById('selectElement').onclick = async () => {
                                 pseudoType = 'element';
                             }
                             
+                            // Build element selector path
+                            function getElementSelector(element) {
+                                if (!element) return '';
+                                
+                                let selector = element.tagName.toLowerCase();
+                                
+                                if (element.id) {
+                                    selector += '#' + element.id;
+                                }
+                                
+                                if (element.className && typeof element.className === 'string') {
+                                    const classes = element.className.trim().split(/\s+/).filter(c => c);
+                                    if (classes.length > 0) {
+                                        selector += '.' + classes.join('.');
+                                    }
+                                }
+                                
+                                return selector;
+                            }
+                            
+                            const elementSelector = getElementSelector(el);
+                            
                             const cssObj = {};
                             const commonProps = [
                                 'display', 'flex-direction', 'align-items', 'justify-content',
@@ -496,7 +522,8 @@ document.getElementById('selectElement').onclick = async () => {
                             const debug = {
                                 pseudoType: typeof pseudoType !== 'undefined' ? pseudoType : null,
                                 extractedKeys: Object.keys(cssObj),
-                                inIframe: doc !== window.document
+                                inIframe: doc !== window.document,
+                                elementSelector: elementSelector
                             };
 
                             resolveCallback({ cssObj: cssObj, debug: debug });
@@ -538,16 +565,18 @@ document.getElementById('selectElement').onclick = async () => {
                 const res = results[0].result;
                 if (res && res.cssObj) {
                     selectedElementCSS = res.cssObj;
+                    selectedElementDebug = res.debug || {};
                     try {
-                        chrome.storage.local.set({ selectedElementCSS: selectedElementCSS, lastExtractDebug: res.debug || null });
+                        chrome.storage.local.set({ selectedElementCSS: selectedElementCSS, lastExtractDebug: selectedElementDebug });
                     } catch (e) {
                         // ignore storage errors
                     }
-                    displayElementCSS(selectedElementCSS);
+                    displayElementCSS(selectedElementCSS, selectedElementDebug);
                 } else {
                     selectedElementCSS = res;
+                    selectedElementDebug = {};
                     chrome.storage.local.set({ selectedElementCSS: selectedElementCSS });
-                    displayElementCSS(selectedElementCSS);
+                    displayElementCSS(selectedElementCSS, selectedElementDebug);
                 }
             }
         });
@@ -748,8 +777,9 @@ function normalizeValue(value, basePx = 16) {
     return val.replace(/\s/g, '');
 }
 
-function displayElementCSS(siteCssObj) {
-    console.log('\n📌 ELEMENT SELECTED - COMPUTED STYLES:\n', siteCssObj);
+function displayElementCSS(siteCssObj, debugInfo = {}) {
+    const selector = debugInfo.elementSelector || 'unknown';
+    console.log(`\n📌 ELEMENT SELECTED: ${selector} - COMPUTED STYLES:\n`, siteCssObj);
     let html = "";
     Object.keys(siteCssObj).forEach(key => {
         html += `<div class="warning"><b>${key}:</b> <code>${siteCssObj[key]}</code></div>`;
@@ -765,7 +795,19 @@ function compareCSS(siteCssObj) {
     console.log('\n✅ PARSED DESIGN CSS OBJECT:\n', designObj);
     const basePx = detectBaseFontSize(designInput);
 
-    console.log('\n💡 ELEMENT CLASS STYLES (for CSS property inheritance):\n', siteCssObj);
+    const selector = selectedElementDebug.elementSelector || 'unknown';
+    console.log(`\n🎯 COMPARING AGAINST ELEMENT: ${selector}`);
+    
+    // Filter element styles to only show properties being compared
+    const comparedProperties = Object.keys(designObj);
+    const filteredElementStyles = {};
+    comparedProperties.forEach(prop => {
+        if (siteCssObj.hasOwnProperty(prop)) {
+            filteredElementStyles[prop] = siteCssObj[prop];
+        }
+    });
+    
+    console.log('\n💡 ELEMENT COMPUTED STYLES (filtered to compared properties only):\n', filteredElementStyles);
     console.log('\n---\n');
 
     // Check if "Compare common properties only" is enabled
@@ -812,7 +854,7 @@ function compareCSS(siteCssObj) {
         html += `<div class="${cssClass}"><b>${key}:</b> ${designLabel}: <code>${designValue}</code> &rarr; ${webLabel}: <code>${displaySiteValue}</code></div>`;
     });
 
-    updateResults(locales[currentLanguage].resultsTitleCompare, html);
+    updateResults(`${locales[currentLanguage].resultsTitleCompare} - ${selector}`, html);
 }
 
 function updateResults(title, content) {
