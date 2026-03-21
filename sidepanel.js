@@ -494,6 +494,12 @@ document.getElementById('selectElement').onclick = async () => {
                                 'z-index', 'opacity', 'overflow', 'overflow-x', 'overflow-y', 'letter-spacing',
                                 'filter', 'background-image', 'text-shadow', 'clip-path', 'mask'
                             ];
+                            
+                            // Add SVG-specific properties if element is SVG
+                            const isSVGElement = el.tagName.toLowerCase() === 'svg' || el.tagName.toLowerCase().match(/^(path|circle|rect|polygon|polyline|line|ellipse|g)$/);
+                            if (isSVGElement) {
+                                commonProps.push('fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin');
+                            }
 
                             commonProps.forEach(key => {
                                 const value = computed.getPropertyValue(key);
@@ -510,6 +516,25 @@ document.getElementById('selectElement').onclick = async () => {
                             console.log('In Shadow DOM:', el.getRootNode() !== doc);
                             console.log('In iframe:', doc !== window.document);
                             console.log('Pseudo-element mode:', pseudoType);
+                            
+                            // SVG-specific warnings
+                            if (isSVGElement && el.tagName.toLowerCase() === 'svg') {
+                                const hasChildren = el.children && el.children.length > 0;
+                                if (hasChildren) {
+                                    console.warn('⚠️ SVG DETECTED: This <svg> element contains child elements (path, circle, rect, etc.)');
+                                    console.warn('💡 TIP: The visual fill/stroke color may come from child elements, not the <svg> wrapper.');
+                                    console.warn('💡 Try clicking on a child element instead (like a <path> or <g>) for more accurate color extraction.');
+                                    
+                                    // Log first few children
+                                    console.log('Child elements:');
+                                    Array.from(el.children).slice(0, 3).forEach((child, idx) => {
+                                        const childSelector = getElementSelector(child);
+                                        const childFill = computed.getPropertyValue('fill');
+                                        console.log(`  ${idx + 1}. ${childSelector} (fill: ${childFill})`);
+                                    });
+                                }
+                            }
+                            
                             console.log('Extracted CSS object:', cssObj);
                             console.log('All computed styles:', computed);
                             console.groupEnd();
@@ -797,6 +822,16 @@ function compareCSS(siteCssObj) {
 
     const selector = selectedElementDebug.elementSelector || 'unknown';
     console.log(`\n🎯 COMPARING AGAINST ELEMENT: ${selector}`);
+    
+    // SVG-specific note
+    if (selector.startsWith('svg')) {
+        console.warn('\n⚠️ SVG ELEMENT DETECTED:');
+        console.warn('📌 For SVG elements, visual colors often come from:');
+        console.warn('   • fill property (for fills)');
+        console.warn('   • stroke property (for strokes)');
+        console.warn('   • Child elements <path>, <circle>, <rect> may override parent styles');
+        console.warn('💡 If comparing fill colors, look for "fill" in the element styles below.\n');
+    }
     
     // Filter element styles to only show properties being compared
     const comparedProperties = Object.keys(designObj);
