@@ -220,9 +220,8 @@ document.getElementById('designCss').addEventListener('input', (e) => {
 
 // Step 1: Select Element logic
 document.getElementById('selectElement').onclick = async () => {
-    console.log('🔍 Select Element button clicked');
+    console.log('\n🔍 SELECT ELEMENT MODE ACTIVATED \n');
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-        console.log('✓ Active tab found:', tab.url);
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: () => {
@@ -535,11 +534,8 @@ document.getElementById('selectElement').onclick = async () => {
                 });
             }
         }, (results) => {
-            console.log('📨 executeScript callback received:', results);
             if (results && results[0] && results[0].result) {
                 const res = results[0].result;
-                console.log('✅ CSS extracted successfully:', res.cssObj);
-                console.log('📋 Debug info:', res.debug);
                 if (res && res.cssObj) {
                     selectedElementCSS = res.cssObj;
                     try {
@@ -553,8 +549,6 @@ document.getElementById('selectElement').onclick = async () => {
                     chrome.storage.local.set({ selectedElementCSS: selectedElementCSS });
                     displayElementCSS(selectedElementCSS);
                 }
-            } else {
-                console.warn('⚠️ No results returned from executeScript');
             }
         });
     });
@@ -562,21 +556,15 @@ document.getElementById('selectElement').onclick = async () => {
 
 // Compare Logic
 document.getElementById('compareBtn').onclick = () => {
-    console.log('⚙️ Compare CSS button clicked');
-    console.log('📦 selectedElementCSS:', selectedElementCSS);
     if (!selectedElementCSS) {
-        console.warn('⚠️ No element selected');
         showError(locales[currentLanguage].errorSelect);
         return;
     }
     const designInput = document.getElementById('designCss').value;
-    console.log('🎨 Design CSS input length:', designInput.length);
     if (!designInput.trim()) {
-        console.warn('⚠️ No design CSS provided');
         showError(locales[currentLanguage].errorPaste);
         return;
     }
-    console.log('✓ Starting CSS comparison...');
     compareCSS(selectedElementCSS);
 };
 
@@ -761,7 +749,7 @@ function normalizeValue(value, basePx = 16) {
 }
 
 function displayElementCSS(siteCssObj) {
-    console.log('\ud83d\udcb1 displayElementCSS() called with properties:', Object.keys(siteCssObj));
+    console.log('\n📌 ELEMENT SELECTED - COMPUTED STYLES:\n', siteCssObj);
     let html = "";
     Object.keys(siteCssObj).forEach(key => {
         html += `<div class="warning"><b>${key}:</b> <code>${siteCssObj[key]}</code></div>`;
@@ -770,12 +758,15 @@ function displayElementCSS(siteCssObj) {
 }
 
 function compareCSS(siteCssObj) {
-    console.log('🔄 compareCSS() function started');
+    console.log('\n🔄 STARTING CSS COMPARISON\n');
     const designInput = document.getElementById("designCss").value;
+    console.log('📝 INPUT CSS FROM SIDEPANEL:\n', designInput);
     const designObj = cssStringToObject(designInput);
-    console.log('📊 Parsed design CSS object:', designObj);
+    console.log('\n✅ PARSED DESIGN CSS OBJECT:\n', designObj);
     const basePx = detectBaseFontSize(designInput);
-    console.log('📐 Base font size detected:', basePx, 'px');
+
+    console.log('\n💡 ELEMENT CLASS STYLES (for CSS property inheritance):\n', siteCssObj);
+    console.log('\n---\n');
 
     // Check if "Compare common properties only" is enabled
     const commonPropsOnly = document.getElementById('commonPropsToggle').checked;
@@ -821,16 +812,10 @@ function compareCSS(siteCssObj) {
         html += `<div class="${cssClass}"><b>${key}:</b> ${designLabel}: <code>${designValue}</code> &rarr; ${webLabel}: <code>${displaySiteValue}</code></div>`;
     });
 
-    console.log('\u2714 CSS comparison complete. Total properties:', Object.keys(designObj).length);
-    console.log('\ud83d\udccb Comparison HTML generated, properties breakdown:', {
-        totalProperties: Object.keys(designObj).length,
-        htmlLength: html.length
-    });
     updateResults(locales[currentLanguage].resultsTitleCompare, html);
 }
 
 function updateResults(title, content) {
-    console.log('\ud83d\udce5 updateResults() called with title:', title);
     document.getElementById('resultsHeader').style.display = 'flex';
     document.getElementById('resultsTitle').textContent = title;
     document.getElementById("results").innerHTML = content;
